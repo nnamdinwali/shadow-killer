@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://dq02waopmy5wd"]
+
+[ext_resource type="PackedScene" uid="uid://ccqx7r7nqqo8l" path="res://paladin-character/Running.fbx" id="1_a0tk4"]
+[ext_resource type="Script" uid="uid://bfy31afcuwksm" path="res://spidey.gd" id="1_r3fl7"]
+[ext_resource type="PackedScene" uid="uid://b6o17ehuealgm" path="res://paladin-character/Punching.fbx" id="2_r3fl7"]
+[ext_resource type="PackedScene" uid="uid://dlbksf1e8xft3" path="res://paladin-character/Kicking.fbx" id="3_jka67"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_g7b7a"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_g7b7a"]
+size = Vector3(50, 0.2, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_jka67"]
+size = Vector3(50, 0.2, 5)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_10236"]
+
+[sub_resource type="Sky" id="Sky_r3fl7"]
+sky_material = SubResource("ProceduralSkyMaterial_10236")
+
+[sub_resource type="Environment" id="Environment_pq5jk"]
+background_mode = 2
+sky = SubResource("Sky_r3fl7")
+
+[node name="spideyplayer" type="Node3D" unique_id=66149982]
+
+[node name="spidey" type="CharacterBody3D" parent="." unique_id=1192301090]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
+script = ExtResource("1_r3fl7")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="spidey" unique_id=433024658]
+shape = SubResource("CapsuleShape3D_g7b7a")
+
+[node name="Running" parent="spidey" unique_id=1218774789 instance=ExtResource("1_a0tk4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+
+[node name="Punching" parent="spidey" unique_id=660466339 instance=ExtResource("2_r3fl7")]
+visible = false
+
+[node name="Kicking" parent="spidey" unique_id=1747886700 instance=ExtResource("3_jka67")]
+visible = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="spidey/Kicking" unique_id=1807754529]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0, 0, 0)
+shape = SubResource("BoxShape3D_g7b7a")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1874614506]
+transform = Transform3D(1, 0, 0, 0, 0.99619466, -0.08715573, 0, 0.08715573, 0.99619466, 0, 1, 6)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=803883495]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=797139500]
+mesh = SubResource("BoxMesh_jka67")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=195970148]
+transform = Transform3D(0.9848078, 0.030153694, -0.17101008, -0.015134437, 0.99596477, 0.08845973, 0.17298742, -0.084527686, 0.9812902, 0, 1, 6)
+light_energy = 7.0
+light_indirect_energy = 2.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1641468157]
+environment = SubResource("Environment_pq5jk")
