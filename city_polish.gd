@@ -28,8 +28,8 @@ func _ready() -> void:
 			child.free()
 	_setup_materials()
 	_apply_facade_textures()
-	_build_floor()
-	_build_road()
+	# The street-level slabs were masking the playable rooftop route.
+	# Keep the skyline as background, but build only the elevated traversal path.
 	_build_traversal_route()
 	_build_street_furniture()
 	_build_fall_zone()
@@ -170,18 +170,19 @@ func _build_road() -> void:
 			_box("Crosswalk_%s_%s" % [x, z], Vector3(x, 0.245, z), Vector3(0.55, 0.035, 0.52), curb)
 
 func _build_traversal_route() -> void:
-	# 2.5D side-scrolling route: matching rooftop platforms with real open gaps.
-	# The wide middle gap is reserved for a future long web-swing section.
+	# 2.5D side-scrolling route in the foreground play lane.
+	# The first roof sits in the camera view; later roofs are separated by
+	# visible gaps, including a longer gap for the future web-swing section.
 	var segments := [
-		[-19.0, 4.8, 10.0, 4.0],
-		[-4.0, 4.8, 10.0, 4.0],
-		[14.0, 4.8, 11.0, 4.0],
-		[27.0, 4.8, 10.0, 4.0]
+		[-2.0, 4.8, 12.0, 4.0],
+		[14.0, 4.8, 12.0, 4.0],
+		[35.0, 4.8, 12.0, 4.0],
+		[51.0, 4.8, 12.0, 4.0]
 	]
 	for i in segments.size():
 		var item = segments[i]
-		_build_rooftop_segment(i, Vector3(item[0], item[1], -6.0), Vector3(item[2], 0.65, item[3]))
-		_build_swing_anchor(i, Vector3(item[0] + item[2] * 0.38, item[1] + 8.0, -5.0))
+		_build_rooftop_segment(i, Vector3(item[0], item[1], 0.0), Vector3(item[2], 0.65, item[3]))
+		_build_swing_anchor(i, Vector3(item[0] + item[2] * 0.38, item[1] + 8.0, 1.0))
 
 
 func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
