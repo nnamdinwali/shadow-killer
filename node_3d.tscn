@@ -32,6 +32,21 @@ background_energy_multiplier = 1.1
 ambient_light_source = 3
 ambient_light_sky_contribution = 0.95
 reflected_light_source = 2
+fog_enabled = true
+fog_light_color = Color(0.69, 0.82, 0.96, 1)
+fog_light_energy = 0.7
+fog_density = 0.004
+fog_height = 8.0
+fog_height_density = 0.045
+fog_sky_affect = 0.18
+ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 1.35
+ssao_power = 1.35
+glow_enabled = true
+glow_intensity = 0.55
+glow_strength = 0.7
+glow_bloom = 0.08
 tonemap_mode = 2
 tonemap_exposure = 1.15
 tonemap_white = 1.0
@@ -85,6 +100,23 @@ roughness = 1.0
 albedo_color = Color(0.72, 0.08, 0.045, 1)
 roughness = 0.72
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_rooftop"]
+albedo_color = Color(0.28, 0.32, 0.35, 1)
+metallic = 0.35
+roughness = 0.62
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_glass"]
+albedo_color = Color(0.08, 0.32, 0.48, 1)
+metallic = 0.55
+roughness = 0.22
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_sign"]
+albedo_color = Color(0.98, 0.48, 0.08, 1)
+emission_enabled = true
+emission = Color(0.8, 0.18, 0.025, 1)
+emission_energy_multiplier = 1.4
+roughness = 0.5
+
 [sub_resource type="BoxMesh" id="BoxMesh_city"]
 size = Vector3(1, 1, 1)
 
@@ -92,6 +124,9 @@ size = Vector3(1, 1, 1)
 size = Vector3(1, 0.12, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_rail"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_prop"]
 size = Vector3(1, 1, 1)
 
 [node name="EnvironmentShowcase" type="Node3D"]
@@ -107,6 +142,9 @@ shape = SubResource("BoxShape3D_ground")
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.99619466, -0.08715573, 0, 0.08715573, 0.99619466, 0, 3, 8)
 current = true
+fov = 58.0
+near = 0.1
+far = 180.0
 
 [node name="CloudLayerFar" type="MeshInstance3D" parent="."]
 position = Vector3(0, 22, -22)
@@ -252,6 +290,44 @@ position = Vector3(0, 2.15, -4.8)
 scale = Vector3(16, 0.18, 0.18)
 material_override = SubResource("StandardMaterial_rail")
 mesh = SubResource("BoxMesh_rail")
+
+[node name="RooftopDetails" type="Node3D" parent="."]
+
+[node name="VentLeft" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(-5.8, 1.05, -2.8)
+scale = Vector3(1.5, 1.2, 1.1)
+material_override = SubResource("StandardMaterial_rooftop")
+mesh = SubResource("BoxMesh_prop")
+
+[node name="VentRight" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(5.4, 1.0, -2.0)
+scale = Vector3(1.25, 1.1, 1.0)
+material_override = SubResource("StandardMaterial_rooftop")
+mesh = SubResource("BoxMesh_prop")
+
+[node name="GlassCabin" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(0, 1.05, -2.9)
+scale = Vector3(2.4, 1.25, 1.2)
+material_override = SubResource("StandardMaterial_glass")
+mesh = SubResource("BoxMesh_prop")
+
+[node name="BillboardLeft" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(-12.5, 4.4, -8.5)
+scale = Vector3(3.8, 2.1, 0.18)
+material_override = SubResource("StandardMaterial_sign")
+mesh = SubResource("BoxMesh_prop")
+
+[node name="BillboardRight" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(12.5, 5.0, -10.0)
+scale = Vector3(3.2, 1.7, 0.18)
+material_override = SubResource("StandardMaterial_sign")
+mesh = SubResource("BoxMesh_prop")
+
+[node name="Antenna" type="MeshInstance3D" parent="RooftopDetails"]
+position = Vector3(8.5, 3.0, -3.2)
+scale = Vector3(0.12, 4.0, 0.12)
+material_override = SubResource("StandardMaterial_rooftop")
+mesh = SubResource("BoxMesh_prop")
 
 [node name="FillLight" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-28, 145, 0)
