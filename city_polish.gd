@@ -13,6 +13,7 @@ var rooftop := StandardMaterial3D.new()
 var rooftop_edge := StandardMaterial3D.new()
 var void_material := StandardMaterial3D.new()
 var facade_shader := Shader.new()
+var brick_shader := Shader.new()
 var facade_materials: Array[ShaderMaterial] = []
 var generated_root: Node3D
 
@@ -28,8 +29,10 @@ func _ready() -> void:
 			child.free()
 	_setup_materials()
 	_apply_facade_textures()
-	# The street-level slabs were masking the playable rooftop route.
-	# Keep the skyline as background, but build only the elevated traversal path.
+	_build_distant_skyline()
+	_build_background_hills()
+	_build_water_glints()
+	# Keep the skyline as background and the elevated rooftops as the play lane.
 	_build_traversal_route()
 	_build_street_furniture()
 	_build_fall_zone()
@@ -59,14 +62,39 @@ func _setup_materials() -> void:
 	lamp_glow.emission = Color("ff9d32")
 	lamp_glow.emission_energy_multiplier = 2.4
 
-	rooftop.albedo_color = Color("393b3d")
-	rooftop.roughness = 0.88
-	rooftop_edge.albedo_color = Color("b9a47d")
-	rooftop_edge.roughness = 0.72
+	rooftop.albedo_color = Color("c8b68f")
+	rooftop.roughness = 0.94
+	rooftop_edge.albedo_color = Color("59483d")
+	rooftop_edge.roughness = 0.9
 
 	void_material.albedo_color = Color("0b1420")
 	void_material.roughness = 1.0
 
+	brick_shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, cull_back;
+
+uniform vec4 brick_color : source_color = vec4(0.56, 0.29, 0.20, 1.0);
+uniform vec4 mortar_color : source_color = vec4(0.78, 0.70, 0.59, 1.0);
+uniform vec2 tile_count = vec2(32.0, 3.0);
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+void fragment() {
+    vec2 cell = UV * tile_count;
+    cell.x += mod(floor(cell.y), 2.0) * 0.5;
+    vec2 local = fract(cell);
+    vec2 tile = floor(cell);
+    float brick = step(0.035, local.x) * step(local.x, 0.965) * step(0.08, local.y) * step(local.y, 0.92);
+    float variation = 0.88 + hash21(tile) * 0.14;
+    ALBEDO = mix(mortar_color.rgb, brick_color.rgb * variation, brick);
+    ROUGHNESS = 0.95;
+}
+"""
 	facade_shader.code = """
 shader_type spatial;
 render_mode diffuse_burley, cull_back;
@@ -169,6 +197,74 @@ func _build_road() -> void:
 		for z in [-0.8, 0.1, 1.0, 1.9, 2.8, 3.7, 4.6]:
 			_box("Crosswalk_%s_%s" % [x, z], Vector3(x, 0.245, z), Vector3(0.55, 0.035, 0.52), curb)
 
+func _build_distant_skyline() -> void:
+    # A pale, hand-built tower layer creates the faded city depth in the reference.
+    var towers := [
+        Vector3(-56.0, 9.0, 5.0), Vector3(-48.0, 15.0, 4.0),
+        Vector3(-40.0, 11.0, 6.0), Vector3(-32.0, 18.0, 5.0),
+        Vector3(-24.0, 12.0, 4.0), Vector3(-16.0, 16.0, 5.0),
+        Vector3(-8.0, 10.0, 4.0), Vector3(1.0, 14.0, 5.0),
+        Vector3(10.0, 20.0, 5.0), Vector3(19.0, 12.0, 4.0),
+        Vector3(28.0, 17.0, 5.0), Vector3(37.0, 10.0, 4.0),
+        Vector3(46.0, 15.0, 5.0), Vector3(55.0, 9.0, 5.0)
+    ]
+    for i in towers.size():
+        var item: Vector3 = towers[i]
+        var height := item.y
+        var tower := _mesh_box("HazySkylineTower_%02d" % i, Vector3(item.x, height * 0.5, -42.0), Vector3(item.z, height, 2.4), _distant_facade_material(i))
+        generated_root.add_child(tower)
+
+func _distant_facade_material(index: int) -> ShaderMaterial:
+    var palette := [
+        [Color("d9e5e5"), Color("9dbdca")],
+        [Color("e4dcd5"), Color("b3cbd4")],
+        [Color("d0e0e4"), Color("9bbac7")],
+        [Color("e7e1d5"), Color("b8cbd3")],
+        [Color("d4e0dc"), Color("a4c0ca")]
+    ]
+    var material := ShaderMaterial.new()
+    material.shader = facade_shader
+    var colors = palette[index % palette.size()]
+    material.set_shader_parameter("base_color", colors[0])
+    material.set_shader_parameter("window_color", colors[1])
+    material.set_shader_parameter("detail_scale", 0.72)
+    return material
+
+func _build_background_hills() -> void:
+    # Low-poly muted hills sit between the water and the distant towers.
+    var hills := [
+        Vector3(-48.0, 18.0, 4.2), Vector3(-25.0, 21.0, 5.0),
+        Vector3(-1.0, 19.0, 4.6), Vector3(23.0, 22.0, 5.2),
+        Vector3(48.0, 18.0, 4.0)
+    ]
+    var colors := [Color("b7a574"), Color("9da16f"), Color("8e9b72"), Color("b7a06e")]
+    for i in hills.size():
+        var item: Vector3 = hills[i]
+        var hill_mesh := SphereMesh.new()
+        hill_mesh.radial_segments = 12
+        hill_mesh.rings = 6
+        var hill := MeshInstance3D.new()
+        hill.name = "DistantHill_%02d" % i
+        hill.mesh = hill_mesh
+        hill.position = Vector3(item.x, 0.8, -30.0)
+        hill.scale = Vector3(item.y, item.z, 1.4)
+        var material := StandardMaterial3D.new()
+        material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+        material.albedo_color = colors[i % colors.size()]
+        hill.material_override = material
+        generated_root.add_child(hill)
+
+func _build_water_glints() -> void:
+    # Short pale strips read as hand-placed reflections, not a generated texture.
+    var glint := StandardMaterial3D.new()
+    glint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    glint.albedo_color = Color("b9e7ee")
+    for i in range(18):
+        var x := -34.0 + float((i * 19) % 68)
+        var z := -20.8 + float(i % 4) * 1.35
+        var length := 1.8 + float(i % 4) * 0.9
+        _box("RiverGlint_%02d" % i, Vector3(x, 4.27, z), Vector3(length, 0.018, 0.08), glint)
+
 func _build_traversal_route() -> void:
 	# 2.5D side-scrolling route in the foreground play lane.
 	# Rooftops are intentionally 1000-2500 world units long so running is the
@@ -198,11 +294,17 @@ func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
 	_box_with_material("RooftopBuilding_%02d" % index, building_center, building_size, building_material)
 	_box_with_material("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
 	_solid_box("TraversalRoof_%02d" % index, center, size, rooftop)
+	var fascia_material := _brick_material_for_width(size.x, size.y)
+	var brick_fascia := _mesh_box("RooftopBrickFascia_%02d" % index, Vector3(center.x, center.y, center.z + size.z * 0.5 + 0.045), Vector3(size.x, size.y, 0.08), fascia_material)
+	generated_root.add_child(brick_fascia)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
 	# Small rooftop service blocks make the platforms feel occupied and give
 	# the player readable cover/obstacles.
-	_box("RooftopUnit_%02d" % index, center + Vector3(size.x * 0.18, size.y * 0.85, -0.25), Vector3(1.0, 0.55, 0.8), metal)
+	for prop_index in range(3):
+		var prop_x := center.x - size.x * 0.5 + 8.0 + float(prop_index) * 18.0
+		var prop_position := Vector3(prop_x, center.y + size.y * 0.85, center.z - 0.25)
+		_box("RooftopUnit_%02d_%02d" % [index, prop_index], prop_position, Vector3(1.4, 0.55, 1.0), metal)
 
 func _facade_material(index: int) -> ShaderMaterial:
 	var colors: Array = [
@@ -217,6 +319,12 @@ func _facade_material(index: int) -> ShaderMaterial:
 	material.set_shader_parameter("base_color", colors[0])
 	material.set_shader_parameter("window_color", colors[1])
 	material.set_shader_parameter("detail_scale", 0.95 + float(index % 3) * 0.15)
+	return material
+
+func _brick_material_for_width(width: float, height: float) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = brick_shader
+	material.set_shader_parameter("tile_count", Vector2(max(width / 0.55, 1.0), max(height / 0.20, 1.0)))
 	return material
 
 func _build_swing_anchor(index: int, position: Vector3) -> void:
