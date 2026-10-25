@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://dq02waopmy5wd"]
+[gd_scene load_steps=2 format=3 uid="uid://dq02waopmy5wd"]
+
+[ext_resource type="Script" path="res://city_polish.gd" id="1_city_polish"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
 size = Vector3(50, 0.2, 20)
@@ -130,6 +132,7 @@ size = Vector3(1, 1, 1)
 size = Vector3(1, 1, 1)
 
 [node name="EnvironmentShowcase" type="Node3D"]
+script = ExtResource("1_city_polish")
 
 [node name="Ground" type="StaticBody3D" parent="."]
 
