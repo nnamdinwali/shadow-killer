@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 ## Hand-authored city foundation and traversal layer.
 ## Uses only native Godot meshes, materials, and shader code; no AI-generated assets.
@@ -13,8 +14,15 @@ var rooftop_edge := StandardMaterial3D.new()
 var void_material := StandardMaterial3D.new()
 var facade_shader := Shader.new()
 var facade_materials: Array[ShaderMaterial] = []
+var generated_root: Node3D
 
 func _ready() -> void:
+	if has_node("CityPolishGenerated"):
+		return
+	generated_root = Node3D.new()
+	generated_root.name = "CityPolishGenerated"
+	add_child(generated_root)
+	generated_root.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else null
 	_setup_materials()
 	_apply_facade_textures()
 	_build_floor()
@@ -185,7 +193,7 @@ func _build_swing_anchor(index: int, position: Vector3) -> void:
 	anchor.name = "SwingAnchor_%02d" % index
 	anchor.position = position
 	anchor.add_to_group("swing_anchors")
-	add_child(anchor)
+	generated_root.add_child(anchor)
 	# Visible only as a small emissive locator during level design; hide before
 	# shipping if the player should not see the traversal markers.
 	var beacon := _mesh_box("SwingBeacon", Vector3.ZERO, Vector3(0.22, 0.22, 0.22), lamp_glow)
@@ -202,7 +210,7 @@ func _build_street_furniture() -> void:
 func _build_lamp(x: float, z: float, reversed_arm: bool = false) -> void:
 	var root := Node3D.new()
 	root.name = "StreetLamp_%s_%s" % [x, z]
-	add_child(root)
+	generated_root.add_child(root)
 	root.position = Vector3(x, 0.0, z)
 	root.add_child(_mesh_box("Pole", Vector3(0.0, 2.1, 0.0), Vector3(0.14, 4.2, 0.14), metal))
 	var arm_x := -0.58 if reversed_arm else 0.58
@@ -212,7 +220,7 @@ func _build_lamp(x: float, z: float, reversed_arm: bool = false) -> void:
 func _build_barrier(x: float, z: float) -> void:
 	var root := Node3D.new()
 	root.name = "RoadBarrier_%s" % x
-	add_child(root)
+	generated_root.add_child(root)
 	root.position = Vector3(x, 0.0, z)
 	root.add_child(_mesh_box("PostA", Vector3(-1.0, 0.55, 0.0), Vector3(0.12, 1.1, 0.12), metal))
 	root.add_child(_mesh_box("PostB", Vector3(1.0, 0.55, 0.0), Vector3(0.12, 1.1, 0.12), metal))
@@ -230,7 +238,7 @@ func _build_fall_zone() -> void:
 	shape.position = Vector3(0.0, -8.0, -2.0)
 	fall_zone.add_child(shape)
 	fall_zone.body_entered.connect(_on_fall_zone_body_entered)
-	add_child(fall_zone)
+	generated_root.add_child(fall_zone)
 
 func _on_fall_zone_body_entered(body: Node3D) -> void:
 	# The player controller can later connect to this signal to trigger a fall
@@ -240,7 +248,7 @@ func _on_fall_zone_body_entered(body: Node3D) -> void:
 
 func _box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := _mesh_box(node_name, position, size, material)
-	add_child(mesh_instance)
+	generated_root.add_child(mesh_instance)
 	return mesh_instance
 
 func _mesh_box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
