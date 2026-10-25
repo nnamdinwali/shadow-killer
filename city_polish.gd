@@ -17,12 +17,15 @@ var facade_materials: Array[ShaderMaterial] = []
 var generated_root: Node3D
 
 func _ready() -> void:
-	if has_node("CityPolishGenerated"):
-		return
-	generated_root = Node3D.new()
-	generated_root.name = "CityPolishGenerated"
-	add_child(generated_root)
-	generated_root.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else null
+	generated_root = get_node_or_null("CityPolishGenerated")
+	if generated_root == null:
+		generated_root = Node3D.new()
+		generated_root.name = "CityPolishGenerated"
+		add_child(generated_root)
+		generated_root.owner = get_tree().edited_scene_root if Engine.is_editor_hint() else null
+	else:
+		for child in generated_root.get_children():
+			child.free()
 	_setup_materials()
 	_apply_facade_textures()
 	_build_floor()
@@ -35,10 +38,10 @@ func _setup_materials() -> void:
 	asphalt.albedo_color = Color("202832")
 	asphalt.roughness = 0.96
 
-	sidewalk.albedo_color = Color("7f8994")
+	sidewalk.albedo_color = Color("b8aa96")
 	sidewalk.roughness = 0.9
 
-	curb.albedo_color = Color("d2d8dc")
+	curb.albedo_color = Color("e8d9bf")
 	curb.roughness = 0.78
 
 	lane_paint.albedo_color = Color("f4c44f")
@@ -56,9 +59,9 @@ func _setup_materials() -> void:
 	lamp_glow.emission = Color("ff9d32")
 	lamp_glow.emission_energy_multiplier = 2.4
 
-	rooftop.albedo_color = Color("313d48")
+	rooftop.albedo_color = Color("4b3e3b")
 	rooftop.roughness = 0.88
-	rooftop_edge.albedo_color = Color("b8c1c8")
+	rooftop_edge.albedo_color = Color("d6b276")
 	rooftop_edge.roughness = 0.72
 
 	void_material.albedo_color = Color("0b1420")
@@ -96,10 +99,11 @@ void fragment() {
 
 func _apply_facade_textures() -> void:
 	var palette := [
-		[Color("557c91"), Color("102c3d")],
-		[Color("71889a"), Color("173244")],
-		[Color("9b9b92"), Color("24353c")],
-		[Color("526b78"), Color("0d2532")]
+		[Color("c47f61"), Color("183a4b")],
+		[Color("d3c09a"), Color("214c58")],
+		[Color("8fa9a2"), Color("243d48")],
+		[Color("bd9a70"), Color("203747")],
+		[Color("d8d1c2"), Color("334f5a")]
 	]
 	var index := 0
 	for node in get_tree().get_nodes_in_group("facade_buildings"):
@@ -181,12 +185,36 @@ func _build_traversal_route() -> void:
 		_box("TransferBridge_%s" % item[0], Vector3(item[0], item[1], -6.0), Vector3(item[2], 0.20, 1.2), rooftop_edge)
 
 func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
+	# Give every floating route piece a believable building mass underneath it.
+	# The rooftop remains a traversal surface; these blocks are the structure
+	# that makes it read as a city rather than an unsupported platform.
+	var building_height := center.y - 0.55
+	var building_size := Vector3(size.x * 0.88, max(building_height, 1.4), size.z * 0.82)
+	var building_center := Vector3(center.x, building_height * 0.5 - 0.2, center.z)
+	var building_material := _facade_material(index)
+	_box_with_material("RooftopBuilding_%02d" % index, building_center, building_size, building_material)
+	_box_with_material("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
 	_box("TraversalRoof_%02d" % index, center, size, rooftop)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
 	# Small rooftop service blocks make the platforms feel occupied and give
 	# the player readable cover/obstacles.
 	_box("RooftopUnit_%02d" % index, center + Vector3(size.x * 0.18, size.y * 0.85, -0.25), Vector3(1.0, 0.55, 0.8), metal)
+
+func _facade_material(index: int) -> ShaderMaterial:
+	var colors: Array = [
+		[Color("c47f61"), Color("183a4b")],
+		[Color("d3c09a"), Color("214c58")],
+		[Color("8fa9a2"), Color("243d48")],
+		[Color("bd9a70"), Color("203747")],
+		[Color("d8d1c2"), Color("334f5a")]
+	][index % 5]
+	var material := ShaderMaterial.new()
+	material.shader = facade_shader
+	material.set_shader_parameter("base_color", colors[0])
+	material.set_shader_parameter("window_color", colors[1])
+	material.set_shader_parameter("detail_scale", 0.95 + float(index % 3) * 0.15)
+	return material
 
 func _build_swing_anchor(index: int, position: Vector3) -> void:
 	var anchor := Marker3D.new()
@@ -247,6 +275,11 @@ func _on_fall_zone_body_entered(body: Node3D) -> void:
 		body.set_meta("fell_from_city", true)
 
 func _box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
+	var mesh_instance := _mesh_box(node_name, position, size, material)
+	generated_root.add_child(mesh_instance)
+	return mesh_instance
+
+func _box_with_material(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := _mesh_box(node_name, position, size, material)
 	generated_root.add_child(mesh_instance)
 	return mesh_instance
