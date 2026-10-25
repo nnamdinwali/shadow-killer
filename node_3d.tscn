@@ -47,17 +47,26 @@ material = SubResource("ShaderMaterial_clouds")
 size = Vector2(68, 28)
 orientation = 1
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial_city_far"]
-albedo_color = Color(0.28, 0.48, 0.7, 1)
-roughness = 1.0
+[sub_resource type="Shader" id="Shader_city_buildings"]
+code = "shader_type spatial;\nrender_mode diffuse_burley, cull_back;\n\nuniform vec4 base_color : source_color;\nuniform vec4 window_color : source_color = vec4(0.08, 0.22, 0.34, 1.0);\nuniform float window_strength : hint_range(0.0, 1.0) = 0.42;\n\nvoid fragment() {\n    vec2 cell = vec2(UV.x * 8.0, UV.y * 16.0);\n    vec2 local = fract(cell);\n    float horizontal_gap = step(0.16, local.x) * step(local.x, 0.88);\n    float vertical_gap = step(0.18, local.y) * step(local.y, 0.84);\n    float windows = horizontal_gap * vertical_gap;\n    vec3 facade = mix(base_color.rgb, window_color.rgb, windows * window_strength);\n    ALBEDO = facade;\n    ROUGHNESS = 0.88;\n    EMISSION = window_color.rgb * windows * 0.035;\n}\n"
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial_city_mid"]
-albedo_color = Color(0.36, 0.58, 0.78, 1)
-roughness = 0.92
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_city_far"]
+shader = SubResource("Shader_city_buildings")
+shader_parameter/base_color = Color(0.32, 0.56, 0.78, 1)
+shader_parameter/window_color = Color(0.08, 0.21, 0.34, 1)
+shader_parameter/window_strength = 0.3
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial_city_near"]
-albedo_color = Color(0.55, 0.62, 0.68, 1)
-roughness = 0.86
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_city_mid"]
+shader = SubResource("Shader_city_buildings")
+shader_parameter/base_color = Color(0.42, 0.68, 0.84, 1)
+shader_parameter/window_color = Color(0.06, 0.18, 0.28, 1)
+shader_parameter/window_strength = 0.44
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_city_near"]
+shader = SubResource("Shader_city_buildings")
+shader_parameter/base_color = Color(0.62, 0.67, 0.7, 1)
+shader_parameter/window_color = Color(0.05, 0.14, 0.21, 1)
+shader_parameter/window_strength = 0.52
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial_water"]
 albedo_color = Color(0.16, 0.45, 0.62, 1)
@@ -129,25 +138,25 @@ mesh = SubResource("BoxMesh_water")
 [node name="FarTowerA" type="MeshInstance3D" parent="CityBackdrop/FarSkyline"]
 position = Vector3(-22, 8, -34)
 scale = Vector3(8, 16, 3)
-material_override = SubResource("StandardMaterial_city_far")
+material_override = SubResource("ShaderMaterial_city_far")
 mesh = SubResource("BoxMesh_city")
 
 [node name="FarTowerB" type="MeshInstance3D" parent="CityBackdrop/FarSkyline"]
 position = Vector3(-10, 6, -34)
 scale = Vector3(7, 12, 3)
-material_override = SubResource("StandardMaterial_city_far")
+material_override = SubResource("ShaderMaterial_city_far")
 mesh = SubResource("BoxMesh_city")
 
 [node name="FarTowerC" type="MeshInstance3D" parent="CityBackdrop/FarSkyline"]
 position = Vector3(3, 10, -34)
 scale = Vector3(6, 20, 3)
-material_override = SubResource("StandardMaterial_city_far")
+material_override = SubResource("ShaderMaterial_city_far")
 mesh = SubResource("BoxMesh_city")
 
 [node name="FarTowerD" type="MeshInstance3D" parent="CityBackdrop/FarSkyline"]
 position = Vector3(16, 7, -34)
 scale = Vector3(9, 14, 3)
-material_override = SubResource("StandardMaterial_city_far")
+material_override = SubResource("ShaderMaterial_city_far")
 mesh = SubResource("BoxMesh_city")
 
 [node name="MiddleSkyline" type="Node3D" parent="CityBackdrop"]
@@ -155,49 +164,49 @@ mesh = SubResource("BoxMesh_city")
 [node name="MidTowerA" type="MeshInstance3D" parent="CityBackdrop/MiddleSkyline"]
 position = Vector3(-25, 5, -25)
 scale = Vector3(6, 10, 3)
-material_override = SubResource("StandardMaterial_city_mid")
+material_override = SubResource("ShaderMaterial_city_mid")
 mesh = SubResource("BoxMesh_city")
 
 [node name="MidTowerB" type="MeshInstance3D" parent="CityBackdrop/MiddleSkyline"]
 position = Vector3(-13, 7, -25)
 scale = Vector3(5, 14, 3)
-material_override = SubResource("StandardMaterial_city_mid")
+material_override = SubResource("ShaderMaterial_city_mid")
 mesh = SubResource("BoxMesh_city")
 
 [node name="MidTowerC" type="MeshInstance3D" parent="CityBackdrop/MiddleSkyline"]
 position = Vector3(1, 5, -25)
 scale = Vector3(8, 10, 3)
-material_override = SubResource("StandardMaterial_city_mid")
+material_override = SubResource("ShaderMaterial_city_mid")
 mesh = SubResource("BoxMesh_city")
 
 [node name="MidTowerD" type="MeshInstance3D" parent="CityBackdrop/MiddleSkyline"]
 position = Vector3(15, 8, -25)
 scale = Vector3(6, 16, 3)
-material_override = SubResource("StandardMaterial_city_mid")
+material_override = SubResource("ShaderMaterial_city_mid")
 mesh = SubResource("BoxMesh_city")
 
 [node name="MidTowerE" type="MeshInstance3D" parent="CityBackdrop/MiddleSkyline"]
 position = Vector3(27, 5, -25)
 scale = Vector3(7, 10, 3)
-material_override = SubResource("StandardMaterial_city_mid")
+material_override = SubResource("ShaderMaterial_city_mid")
 mesh = SubResource("BoxMesh_city")
 
 [node name="BridgeDeck" type="MeshInstance3D" parent="CityBackdrop"]
 position = Vector3(-12, 3.1, -16)
 scale = Vector3(25, 0.45, 1.1)
-material_override = SubResource("StandardMaterial_city_near")
+material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
 
 [node name="BridgeTowerLeft" type="MeshInstance3D" parent="CityBackdrop"]
 position = Vector3(-22, 7, -16)
 scale = Vector3(1.2, 8, 1.2)
-material_override = SubResource("StandardMaterial_city_near")
+material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
 
 [node name="BridgeTowerRight" type="MeshInstance3D" parent="CityBackdrop"]
 position = Vector3(-2, 7, -16)
 scale = Vector3(1.2, 8, 1.2)
-material_override = SubResource("StandardMaterial_city_near")
+material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
 
 [node name="NearBuildings" type="Node3D" parent="CityBackdrop"]
@@ -205,13 +214,13 @@ mesh = SubResource("BoxMesh_city")
 [node name="NearBlockLeft" type="MeshInstance3D" parent="CityBackdrop/NearBuildings"]
 position = Vector3(-25, 3.4, -11)
 scale = Vector3(10, 6, 2.5)
-material_override = SubResource("StandardMaterial_city_near")
+material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
 
 [node name="NearBlockRight" type="MeshInstance3D" parent="CityBackdrop/NearBuildings"]
 position = Vector3(25, 4.2, -11)
 scale = Vector3(10, 8, 2.5)
-material_override = SubResource("StandardMaterial_city_near")
+material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
 
 [node name="RooftopPlatform" type="MeshInstance3D" parent="."]
@@ -243,6 +252,12 @@ position = Vector3(0, 2.15, -4.8)
 scale = Vector3(16, 0.18, 0.18)
 material_override = SubResource("StandardMaterial_rail")
 mesh = SubResource("BoxMesh_rail")
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-28, 145, 0)
+light_color = Color(0.72, 0.86, 1, 1)
+light_energy = 0.45
+shadow_enabled = false
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.9848078, 0.030153694, -0.17101008, -0.015134437, 0.99596477, 0.08845973, 0.17298742, -0.084527686, 0.9812902, 0, 1, 6)
