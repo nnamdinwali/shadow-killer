@@ -171,13 +171,15 @@ func _build_road() -> void:
 
 func _build_traversal_route() -> void:
 	# 2.5D side-scrolling route in the foreground play lane.
-	# The first roof sits in the camera view; later roofs are separated by
-	# visible gaps, including a longer gap for the future web-swing section.
+	# Rooftops are intentionally 1000-2500 world units long so running is the
+	# default; gaps are reserved for occasional jumps and web-swing sections.
+	# Long running rooftops are the default; only selected sections create jumps.
+	# Each entry is [center_x, top_y, length_x, depth_z].
 	var segments := [
-		[-2.0, 4.8, 12.0, 4.0],
-		[14.0, 4.8, 12.0, 4.0],
-		[35.0, 4.8, 12.0, 4.0],
-		[51.0, 4.8, 12.0, 4.0]
+		[1250.0, 4.8, 2500.0, 12.0],
+		[4000.0, 4.8, 2500.0, 12.0],
+		[5000.0, 4.8, 1000.0, 12.0],
+		[7000.0, 4.8, 2500.0, 12.0]
 	]
 	for i in segments.size():
 		var item = segments[i]

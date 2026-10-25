@@ -135,7 +135,7 @@ size = Vector3(1, 1, 1)
 script = ExtResource("1_city_polish")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.99619466, -0.08715573, 0, 0.08715573, 0.99619466, 0, 3, 8)
+transform = Transform3D(1, 0, 0, 0, 0.9396926, 0.34202015, 0, -0.34202015, 0.9396926, 0, 14, 22)
 current = true
 fov = 58.0
 near = 0.1
