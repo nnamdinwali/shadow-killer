@@ -36,6 +36,17 @@ tonemap_mode = 2
 tonemap_exposure = 1.0
 tonemap_white = 1.0
 
+[sub_resource type="Shader" id="Shader_clouds"]
+code = "shader_type spatial;\nrender_mode unshaded, cull_disabled, depth_draw_never, blend_mix;\n\nuniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);\nuniform float opacity : hint_range(0.0, 1.0) = 0.42;\n\nfloat hash21(vec2 p) {\n    p = fract(p * vec2(123.34, 456.21));\n    p += dot(p, p + 45.32);\n    return fract(p.x * p.y);\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + vec2(1.0, 0.0));\n    float c = hash21(i + vec2(0.0, 1.0));\n    float d = hash21(i + vec2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\n\nfloat cloud_fbm(vec2 p) {\n    float value = 0.0;\n    float amplitude = 0.55;\n    for (int i = 0; i < 3; i++) {\n        value += noise(p) * amplitude;\n        p = p * 2.02 + vec2(13.7, 7.1);\n        amplitude *= 0.5;\n    }\n    return value;\n}\n\nvoid fragment() {\n    vec2 p = UV * vec2(4.5, 2.0);\n    p.x += TIME * 0.004;\n    float base = cloud_fbm(p);\n    float detail = noise(p * 3.0 + 8.0) * 0.12;\n    float cloud = smoothstep(0.43, 0.64, base + detail);\n    float soft_edges = smoothstep(0.02, 0.16, UV.x) * smoothstep(0.98, 0.84, UV.x);\n    soft_edges *= smoothstep(0.02, 0.20, UV.y) * smoothstep(0.98, 0.80, UV.y);\n    ALBEDO = cloud_color.rgb;\n    ALPHA = cloud * soft_edges * opacity;\n}\n"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
+shader = SubResource("Shader_clouds")
+
+[sub_resource type="QuadMesh" id="QuadMesh_clouds"]
+material = SubResource("ShaderMaterial_clouds")
+size = Vector2(32, 12)
+orientation = 1
+
 [node name="EnvironmentShowcase" type="Node3D"]
 
 [node name="Ground" type="StaticBody3D" parent="."]
@@ -49,6 +60,23 @@ shape = SubResource("BoxShape3D_ground")
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.99619466, -0.08715573, 0, 0.08715573, 0.99619466, 0, 3, 8)
 current = true
+
+[node name="CloudLayerFar" type="MeshInstance3D" parent="."]
+position = Vector3(0, 18, -18)
+scale = Vector3(1.8, 1, 1)
+mesh = SubResource("QuadMesh_clouds")
+
+[node name="CloudLayerMid" type="MeshInstance3D" parent="."]
+position = Vector3(-16, 13, -8)
+rotation_degrees = Vector3(0, 12, 0)
+scale = Vector3(1.15, 0.85, 1)
+mesh = SubResource("QuadMesh_clouds")
+
+[node name="CloudLayerHigh" type="MeshInstance3D" parent="."]
+position = Vector3(18, 24, -35)
+rotation_degrees = Vector3(0, -18, 0)
+scale = Vector3(1.4, 0.75, 1)
+mesh = SubResource("QuadMesh_clouds")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.9848078, 0.030153694, -0.17101008, -0.015134437, 0.99596477, 0.08845973, 0.17298742, -0.084527686, 0.9812902, 0, 1, 6)
