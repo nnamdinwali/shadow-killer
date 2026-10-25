@@ -194,7 +194,7 @@ func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
 	var building_material := _facade_material(index)
 	_box_with_material("RooftopBuilding_%02d" % index, building_center, building_size, building_material)
 	_box_with_material("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
-	_box("TraversalRoof_%02d" % index, center, size, rooftop)
+	_solid_box("TraversalRoof_%02d" % index, center, size, rooftop)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
 	# Small rooftop service blocks make the platforms feel occupied and give
@@ -273,6 +273,22 @@ func _on_fall_zone_body_entered(body: Node3D) -> void:
 	# animation/restart. Keeping it here makes the level's failure space explicit.
 	if body.is_in_group("player"):
 		body.set_meta("fell_from_city", true)
+
+
+func _solid_box(node_name: String, position: Vector3, size: Vector3, material: Material) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = node_name
+	body.position = position
+	var mesh_instance := _mesh_box("Mesh", Vector3.ZERO, size, material)
+	body.add_child(mesh_instance)
+	var collision := CollisionShape3D.new()
+	collision.name = "CollisionShape3D"
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	generated_root.add_child(body)
+	return body
 
 func _box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := _mesh_box(node_name, position, size, material)

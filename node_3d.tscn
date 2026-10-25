@@ -134,14 +134,6 @@ size = Vector3(1, 1, 1)
 [node name="EnvironmentShowcase" type="Node3D"]
 script = ExtResource("1_city_polish")
 
-[node name="Ground" type="StaticBody3D" parent="."]
-
-[node name="Mesh" type="MeshInstance3D" parent="Ground"]
-mesh = SubResource("BoxMesh_ground")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
-shape = SubResource("BoxShape3D_ground")
-
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.99619466, -0.08715573, 0, 0.08715573, 0.99619466, 0, 3, 8)
 current = true
@@ -263,74 +255,6 @@ position = Vector3(25, 4.2, -11)
 scale = Vector3(10, 8, 2.5)
 material_override = SubResource("ShaderMaterial_city_near")
 mesh = SubResource("BoxMesh_city")
-
-[node name="RooftopPlatform" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.18, -2.5)
-scale = Vector3(20, 0.35, 5)
-material_override = SubResource("StandardMaterial_platform")
-mesh = SubResource("BoxMesh_city")
-
-[node name="RooftopSide" type="MeshInstance3D" parent="."]
-position = Vector3(0, -0.15, -2.5)
-scale = Vector3(20, 0.3, 5.1)
-material_override = SubResource("StandardMaterial_platform_side")
-mesh = SubResource("BoxMesh_city")
-
-[node name="RedRailLeft" type="MeshInstance3D" parent="."]
-position = Vector3(-8, 1.2, -4.8)
-scale = Vector3(0.18, 2.1, 0.18)
-material_override = SubResource("StandardMaterial_rail")
-mesh = SubResource("BoxMesh_rail")
-
-[node name="RedRailRight" type="MeshInstance3D" parent="."]
-position = Vector3(8, 1.2, -4.8)
-scale = Vector3(0.18, 2.1, 0.18)
-material_override = SubResource("StandardMaterial_rail")
-mesh = SubResource("BoxMesh_rail")
-
-[node name="RedRailTop" type="MeshInstance3D" parent="."]
-position = Vector3(0, 2.15, -4.8)
-scale = Vector3(16, 0.18, 0.18)
-material_override = SubResource("StandardMaterial_rail")
-mesh = SubResource("BoxMesh_rail")
-
-[node name="RooftopDetails" type="Node3D" parent="."]
-
-[node name="VentLeft" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(-5.8, 1.05, -2.8)
-scale = Vector3(1.5, 1.2, 1.1)
-material_override = SubResource("StandardMaterial_rooftop")
-mesh = SubResource("BoxMesh_prop")
-
-[node name="VentRight" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(5.4, 1.0, -2.0)
-scale = Vector3(1.25, 1.1, 1.0)
-material_override = SubResource("StandardMaterial_rooftop")
-mesh = SubResource("BoxMesh_prop")
-
-[node name="GlassCabin" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(0, 1.05, -2.9)
-scale = Vector3(2.4, 1.25, 1.2)
-material_override = SubResource("StandardMaterial_glass")
-mesh = SubResource("BoxMesh_prop")
-
-[node name="BillboardLeft" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(-12.5, 4.4, -8.5)
-scale = Vector3(3.8, 2.1, 0.18)
-material_override = SubResource("StandardMaterial_sign")
-mesh = SubResource("BoxMesh_prop")
-
-[node name="BillboardRight" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(12.5, 5.0, -10.0)
-scale = Vector3(3.2, 1.7, 0.18)
-material_override = SubResource("StandardMaterial_sign")
-mesh = SubResource("BoxMesh_prop")
-
-[node name="Antenna" type="MeshInstance3D" parent="RooftopDetails"]
-position = Vector3(8.5, 3.0, -3.2)
-scale = Vector3(0.12, 4.0, 0.12)
-material_override = SubResource("StandardMaterial_rooftop")
-mesh = SubResource("BoxMesh_prop")
 
 [node name="FillLight" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-28, 145, 0)
