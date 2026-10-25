@@ -193,7 +193,7 @@ func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
 	# Give every floating route piece a believable building mass underneath it.
 	# The rooftop remains a traversal surface; these blocks are the structure
 	# that makes it read as a city rather than an unsupported platform.
-	var building_height := center.y - 0.55
+	var building_height := center.y - 0.28
 	var building_size := Vector3(size.x * 0.88, max(building_height, 1.4), size.z * 0.82)
 	var building_center := Vector3(center.x, building_height * 0.5 - 0.2, center.z)
 	var building_material := _facade_material(index)

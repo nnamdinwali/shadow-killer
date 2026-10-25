@@ -37,20 +37,20 @@ reflected_light_source = 2
 fog_enabled = true
 fog_light_color = Color(0.48, 0.68, 0.88, 1)
 fog_light_energy = 0.48
-fog_density = 0.0018
+fog_density = 0.0012
 fog_height = 8.0
 fog_height_density = 0.025
 fog_sky_affect = 0.18
 ssao_enabled = true
 ssao_radius = 2.0
-ssao_intensity = 1.05
+ssao_intensity = 0.7
 ssao_power = 1.35
 glow_enabled = true
 glow_intensity = 0.28
 glow_strength = 0.45
 glow_bloom = 0.08
 tonemap_mode = 2
-tonemap_exposure = 0.98
+tonemap_exposure = 1.04
 tonemap_white = 1.0
 
 [sub_resource type="Shader" id="Shader_clouds"]
@@ -341,7 +341,7 @@ shadow_enabled = false
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.9848078, 0.030153694, -0.17101008, -0.015134437, 0.99596477, 0.08845973, 0.17298742, -0.084527686, 0.9812902, 0, 1, 6)
 light_color = Color(1, 0.93, 0.82, 1)
-light_energy = 1.6
+light_energy = 2.0
 light_indirect_energy = 0.9
 light_angular_distance = 0.28
 shadow_enabled = true
