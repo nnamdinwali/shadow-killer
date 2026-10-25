@@ -54,7 +54,7 @@ tonemap_exposure = 0.98
 tonemap_white = 1.0
 
 [sub_resource type="Shader" id="Shader_clouds"]
-code = "shader_type spatial;\nrender_mode unshaded, cull_disabled, depth_draw_never, blend_mix;\n\nuniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);\nuniform float opacity : hint_range(0.0, 1.0) = 0.58;\n\nfloat hash21(vec2 p) {\n    p = fract(p * vec2(123.34, 456.21));\n    p += dot(p, p + 45.32);\n    return fract(p.x * p.y);\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + vec2(1.0, 0.0));\n    float c = hash21(i + vec2(0.0, 1.0));\n    float d = hash21(i + vec2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\n\nfloat cloud_fbm(vec2 p) {\n    float value = 0.0;\n    float amplitude = 0.55;\n    for (int i = 0; i < 3; i++) {\n        value += noise(p) * amplitude;\n        p = p * 2.02 + vec2(13.7, 7.1);\n        amplitude *= 0.5;\n    }\n    return value;\n}\n\nvoid fragment() {\n    vec2 p = UV * vec2(4.5, 2.0);\n    p.x += TIME * 0.004;\n    float base = cloud_fbm(p);\n    float detail = noise(p * 3.0 + 8.0) * 0.16;\n    float cloud = smoothstep(0.48, 0.65, base + detail);\n    float soft_edges = smoothstep(0.02, 0.16, UV.x) * smoothstep(0.98, 0.84, UV.x);\n    soft_edges *= smoothstep(0.02, 0.20, UV.y) * smoothstep(0.98, 0.80, UV.y);\n    ALBEDO = cloud_color.rgb;\n    ALPHA = cloud * soft_edges * opacity;\n}\n"
+code = "shader_type spatial;\nrender_mode unshaded, cull_disabled, depth_draw_never, blend_mix;\n\nuniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);\nuniform float opacity : hint_range(0.0, 1.0) = 0.52;\n\nfloat hash21(vec2 p) {\n    p = fract(p * vec2(123.34, 456.21));\n    p += dot(p, p + 45.32);\n    return fract(p.x * p.y);\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + vec2(1.0, 0.0));\n    float c = hash21(i + vec2(0.0, 1.0));\n    float d = hash21(i + vec2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\n\nfloat cloud_fbm(vec2 p) {\n    float value = 0.0;\n    float amplitude = 0.55;\n    for (int i = 0; i < 4; i++) {\n        value += noise(p) * amplitude;\n        p = p * 2.02 + vec2(13.7, 7.1);\n        amplitude *= 0.5;\n    }\n    return value;\n}\n\nvoid fragment() {\n    vec2 p = UV * vec2(5.2, 2.35);\n    p.x += TIME * 0.004;\n    float base = cloud_fbm(p);\n    float detail = noise(p * 3.4 + 8.0) * 0.22;\n    float cloud = smoothstep(0.51, 0.69, base + detail);\n    float soft_edges = smoothstep(0.02, 0.16, UV.x) * smoothstep(0.98, 0.84, UV.x);\n    soft_edges *= smoothstep(0.02, 0.20, UV.y) * smoothstep(0.98, 0.80, UV.y);\n    ALBEDO = cloud_color.rgb;\n    ALPHA = cloud * soft_edges * opacity;\n}\n"
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
 shader = SubResource("Shader_clouds")
@@ -343,9 +343,9 @@ transform = Transform3D(0.9848078, 0.030153694, -0.17101008, -0.015134437, 0.995
 light_color = Color(1, 0.93, 0.82, 1)
 light_energy = 1.6
 light_indirect_energy = 0.9
-light_angular_distance = 0.45
+light_angular_distance = 0.28
 shadow_enabled = true
-directional_shadow_max_distance = 80.0
+directional_shadow_max_distance = 58.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_environment")
