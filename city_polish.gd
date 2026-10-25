@@ -35,13 +35,13 @@ func _ready() -> void:
 	_build_fall_zone()
 
 func _setup_materials() -> void:
-	asphalt.albedo_color = Color("202832")
+	asphalt.albedo_color = Color("252a30")
 	asphalt.roughness = 0.96
 
-	sidewalk.albedo_color = Color("b8aa96")
+	sidewalk.albedo_color = Color("a7a39a")
 	sidewalk.roughness = 0.9
 
-	curb.albedo_color = Color("e8d9bf")
+	curb.albedo_color = Color("c8c4b9")
 	curb.roughness = 0.78
 
 	lane_paint.albedo_color = Color("f4c44f")
@@ -50,7 +50,7 @@ func _setup_materials() -> void:
 	lane_paint.emission_energy_multiplier = 0.28
 	lane_paint.roughness = 0.58
 
-	metal.albedo_color = Color("293640")
+	metal.albedo_color = Color("303b43")
 	metal.metallic = 0.72
 	metal.roughness = 0.34
 
@@ -59,9 +59,9 @@ func _setup_materials() -> void:
 	lamp_glow.emission = Color("ff9d32")
 	lamp_glow.emission_energy_multiplier = 2.4
 
-	rooftop.albedo_color = Color("4b3e3b")
+	rooftop.albedo_color = Color("393b3d")
 	rooftop.roughness = 0.88
-	rooftop_edge.albedo_color = Color("d6b276")
+	rooftop_edge.albedo_color = Color("b9a47d")
 	rooftop_edge.roughness = 0.72
 
 	void_material.albedo_color = Color("0b1420")
@@ -84,26 +84,31 @@ void fragment() {
     vec2 cell = UV * vec2(10.0, 18.0) * detail_scale;
     vec2 local = fract(cell);
     vec2 tile = floor(cell);
-    float frame = step(0.08, local.x) * step(local.x, 0.92) * step(0.10, local.y) * step(local.y, 0.90);
-    float window = step(0.18, local.x) * step(local.x, 0.82) * step(0.16, local.y) * step(local.y, 0.84);
-    float warm_variation = step(0.78, hash12(tile + 4.0));
-    float seam = (1.0 - step(0.965, local.x)) * 0.07 + (1.0 - step(0.965, local.y)) * 0.06;
-    float grime = hash12(tile * 0.7 + 12.0) * 0.10;
-    vec3 facade = base_color.rgb * (1.0 - grime - seam);
-    vec3 glass = window_color.rgb + vec3(0.10, 0.13, 0.12) * warm_variation;
-    ALBEDO = mix(facade, glass, window * frame * 0.82);
-    ROUGHNESS = mix(0.88, 0.26, window * frame);
-    EMISSION = glass * window * frame * (0.018 + warm_variation * 0.035);
+    float panel = step(0.045, local.x) * step(local.x, 0.955) * step(0.035, local.y) * step(local.y, 0.965);
+    float window_frame = step(0.13, local.x) * step(local.x, 0.87) * step(0.12, local.y) * step(local.y, 0.88);
+    float window = step(0.19, local.x) * step(local.x, 0.81) * step(0.18, local.y) * step(local.y, 0.82);
+    float warm_variation = step(0.84, hash12(tile + 4.0));
+    float panel_variation = (hash12(tile + 18.0) - 0.5) * 0.075;
+    float seam = (1.0 - step(0.975, local.x)) * 0.10 + (1.0 - step(0.975, local.y)) * 0.08;
+    float grime = hash12(tile * 0.7 + 12.0) * 0.075;
+    float vertical_weathering = smoothstep(0.72, 1.0, hash12(vec2(tile.x, 3.0))) * (1.0 - local.y) * 0.07;
+    vec3 facade = base_color.rgb * (1.0 - grime - seam - vertical_weathering + panel_variation);
+    vec3 glass = window_color.rgb + vec3(0.07, 0.095, 0.10) * warm_variation;
+    float glass_mask = window * window_frame * panel;
+    ALBEDO = mix(facade, glass, glass_mask * 0.88);
+    ROUGHNESS = mix(0.91, 0.30, glass_mask);
+    SPECULAR = mix(0.28, 0.62, glass_mask);
+    EMISSION = glass * glass_mask * (0.008 + warm_variation * 0.028);
 }
 """
 
 func _apply_facade_textures() -> void:
 	var palette := [
-		[Color("c47f61"), Color("183a4b")],
-		[Color("d3c09a"), Color("214c58")],
-		[Color("8fa9a2"), Color("243d48")],
-		[Color("bd9a70"), Color("203747")],
-		[Color("d8d1c2"), Color("334f5a")]
+		[Color("9c7767"), Color("172f3b")],
+		[Color("b9ad98"), Color("1c3b49")],
+		[Color("819792"), Color("20343e")],
+		[Color("a88b70"), Color("1b303d")],
+		[Color("c0bbb0"), Color("293e48")]
 	]
 	var index := 0
 	for node in get_tree().get_nodes_in_group("facade_buildings"):
@@ -203,11 +208,11 @@ func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
 
 func _facade_material(index: int) -> ShaderMaterial:
 	var colors: Array = [
-		[Color("c47f61"), Color("183a4b")],
-		[Color("d3c09a"), Color("214c58")],
-		[Color("8fa9a2"), Color("243d48")],
-		[Color("bd9a70"), Color("203747")],
-		[Color("d8d1c2"), Color("334f5a")]
+		[Color("9c7767"), Color("172f3b")],
+		[Color("b9ad98"), Color("1c3b49")],
+		[Color("819792"), Color("20343e")],
+		[Color("a88b70"), Color("1b303d")],
+		[Color("c0bbb0"), Color("293e48")]
 	][index % 5]
 	var material := ShaderMaterial.new()
 	material.shader = facade_shader
