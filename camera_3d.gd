@@ -5,7 +5,7 @@ extends Camera3D
 @export var target_path: NodePath = ".." 
 # Offset from the character (X: horizontal, Y: height, Z: distance from character)
 # For a side-scroller, Z should be a positive number to stay back.
-@export var offset: Vector3 = Vector3(0, 2.5, 10.0)
+@export var offset: Vector3 = Vector3(0, 2.5, 14.0)
 # How smoothly the camera follows (higher = faster)
 @export var smooth_speed: float = 5.0
 
