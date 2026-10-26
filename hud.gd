@@ -1,7 +1,8 @@
 extends CanvasLayer
 
-## Native Godot HUD for the rooftop runner.
-## The interface is built from Godot Controls at runtime; no generated images are used.
+## Code-driven modern HUD for the rooftop runner.
+## Every panel, bar, counter, color and touch zone is created by Godot at runtime.
+## No image, icon atlas, AI asset or generated texture is loaded by this script.
 
 @export var max_health: float = 100.0
 @export var starting_coins: int = 16
@@ -60,6 +61,8 @@ func _label(text_value: String, size: int, color: Color) -> Label:
 	return label
 
 func _build_hud() -> void:
+	# Build the interface entirely from native Godot Controls and StyleBoxFlat.
+	# This is intentionally procedural so the UI remains editable in code.
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
