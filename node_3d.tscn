@@ -66,7 +66,7 @@ orientation = 1
 script = ExtResource("1_city_polish")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.9781476, 0.2079117, 0, -0.2079117, 0.9781476, 0, 12, 26)
+transform = Transform3D(1, 0, 0, 0, 0.98480775, 0.17364818, 0, -0.17364818, 0.98480775, 12, 11, 30)
 current = true
 fov = 58.0
 near = 0.1

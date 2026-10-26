@@ -4,27 +4,14 @@ extends Node3D
 ## Everything here is built from native Godot meshes, materials and shader code;
 ## no imported art is used.
 ##
-## Layout (z axis): the rooftop route runs along +x at z -6..6, a park and the
-## far skyline sit behind a river, and the city rolls past the camera in
-## parallax layers so the background never runs out.
+## Layout: close foreground rooftop route, a simple street/terrain band, and
+## sparse low-rise neighborhood buildings far behind it. No water or tower wall.
 
 const LAND_X_MIN := -400.0
 const LAND_X_MAX := 9000.0
 const HAZE_COLOR := Color(0.78, 0.90, 1.0)
 
-## Parallax skyline layers. "scroll" is the share of the camera speed the layer
-## appears to move on screen (1.0 = same as the route, 0.0 = painted on the sky).
-## "period" is the repeat distance in meters; layers are built three times side
-## by side and wrapped, so the city is endless.
-const SKY_LAYERS := [
-	{"name": "FarSkyline", "z": -420.0, "scroll": 0.04, "period": 300.0, "count": 18,
-		"w_min": 8.0, "w_max": 15.0, "h_min": 22.0, "h_max": 46.0, "depth": 7.0, "haze": 0.38},
-	{"name": "MidSkyline", "z": -340.0, "scroll": 0.12, "period": 220.0, "count": 14,
-		"w_min": 8.0, "w_max": 14.0, "h_min": 15.0, "h_max": 30.0, "depth": 7.0, "haze": 0.23},
-	{"name": "NearSkyline", "z": -250.0, "scroll": 0.22, "period": 150.0, "count": 10,
-		"w_min": 7.0, "w_max": 12.0, "h_min": 9.0, "h_max": 19.0, "depth": 6.0, "haze": 0.12},
-]
-
+## The distant neighborhood moves slowly for subtle depth.
 const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
 
 var asphalt := StandardMaterial3D.new()
@@ -37,7 +24,6 @@ var pole := StandardMaterial3D.new()
 var lamp_glow := StandardMaterial3D.new()
 var rooftop := StandardMaterial3D.new()
 var rooftop_edge := StandardMaterial3D.new()
-var water_material := ShaderMaterial.new()
 var building_shader := Shader.new()
 var building_material := ShaderMaterial.new()
 var palette: Array = []
@@ -123,43 +109,6 @@ func _setup_materials() -> void:
 	rooftop_edge.albedo_color = Color("ff6b57")
 	rooftop_edge.roughness = 0.7
 
-	var water_shader := Shader.new()
-	water_shader.code = """
-shader_type spatial;
-render_mode cull_back, diffuse_burley;
-
-uniform vec4 shallow_color : source_color = vec4(0.24, 0.86, 0.96, 1.0);
-uniform vec4 deep_color : source_color = vec4(0.015, 0.24, 0.55, 1.0);
-
-varying vec3 water_world_pos;
-
-float wave_height(vec2 p) {
-	return sin(p.x * 0.075 + TIME * 1.15) * 0.24
-		+ sin(p.y * 0.19 - TIME * 0.82) * 0.10
-		+ sin((p.x + p.y) * 0.12 + TIME * 0.55) * 0.07;
-}
-
-void vertex() {
-	vec2 p = VERTEX.xz;
-	float h = wave_height(p);
-	float dx = (wave_height(p + vec2(0.08, 0.0)) - wave_height(p - vec2(0.08, 0.0))) / 0.16;
-	float dz = (wave_height(p + vec2(0.0, 0.08)) - wave_height(p - vec2(0.0, 0.08))) / 0.16;
-	VERTEX.y += h;
-	NORMAL = normalize(vec3(-dx, 1.0, -dz));
-	water_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-}
-
-void fragment() {
-	float broad = sin(water_world_pos.x * 0.035 + TIME * 0.25) * 0.5 + 0.5;
-	float ripples = sin(water_world_pos.x * 0.18 + water_world_pos.z * 0.32 + TIME * 1.1);
-	float glint = smoothstep(0.90, 0.995, ripples * 0.5 + 0.5);
-	ALBEDO = mix(deep_color.rgb, shallow_color.rgb, 0.25 + broad * 0.42) + vec3(glint * 0.16);
-	METALLIC = 0.28;
-	ROUGHNESS = 0.16;
-	SPECULAR = 0.85;
-}
-"""
-	water_material.shader = water_shader
 
 	# One shader draws every building. Colors and size come per building
 	# through instance uniforms, and windows are laid out in meters so a
@@ -229,62 +178,49 @@ void fragment() {
 
 
 func _build_ground() -> void:
+	# Distant land and a quiet street sit behind the playable rooftop.
 	var length := LAND_X_MAX - LAND_X_MIN
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
-	# Depth order from the camera: playable rooftop (z=0), broad water (-105),
-	# near skyline (-250), mid skyline (-340), then hazy distant skyline (-420).
-	# Keep the land strip behind the skyline so it cannot mask the roof supports.
-	_box("LandBack", Vector3(center_x, -0.5, -445.0), Vector3(length, 1.0, 44.0), land_back)
-	_box("QuayBack", Vector3(center_x, -0.15, -72.0), Vector3(length, 0.3, 0.7), quay)
-	_build_3d_water(center_x, length)
-
-
-func _build_3d_water(center_x: float, length: float) -> void:
-	# A subdivided horizontal mesh lets the shader physically displace the
-	# surface into moving waves instead of showing a flat blue box top.
-	var water_mesh := PlaneMesh.new()
-	water_mesh.size = Vector2(length, 100.0)
-	water_mesh.subdivide_width = 2048
-	water_mesh.subdivide_depth = 64
-	var water := MeshInstance3D.new()
-	water.name = "Animated3DWater"
-	water.mesh = water_mesh
-	water.material_override = water_material
-	water.position = Vector3(center_x, -0.55, -105.0)
-	generated_root.add_child(water)
+	_box("DistantTerrain", Vector3(center_x, -1.7, -105.0), Vector3(length, 2.0, 70.0), land_back)
+	_box("BackStreet", Vector3(center_x, -0.55, -49.0), Vector3(length, 0.25, 24.0), asphalt)
+	_box("StreetSidewalk", Vector3(center_x, -0.35, -35.5), Vector3(length, 0.3, 3.0), land_front)
+	_box("StreetCurb", Vector3(center_x, -0.18, -37.0), Vector3(length, 0.18, 0.25), curb)
+	# Sparse lane markings give the background a recognizable street scale.
+	for x in range(int(LAND_X_MIN), int(LAND_X_MAX), 34):
+		_box("LaneMark_%d" % x, Vector3(float(x), -0.405, -49.0), Vector3(12.0, 0.025, 0.18), curb)
 
 
 func _build_skyline() -> void:
+	# Low, scattered neighborhood buildings: one calm background band, not stacked towers.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7341
-	for config in SKY_LAYERS:
-		var layer := Node3D.new()
-		layer.name = config["name"]
-		generated_root.add_child(layer)
-		layer.position = Vector3(0.0, 0.0, config["z"])
-		parallax_layers.append({"node": layer, "scroll": config["scroll"], "period": config["period"]})
-
-		var period: float = config["period"]
-		var count: int = config["count"]
-		var slot := period / float(count)
-		var haze: float = config["haze"]
-		for i in count:
-			var width := rng.randf_range(config["w_min"], min(config["w_max"], slot * 0.95))
-			var height := rng.randf_range(config["h_min"], config["h_max"])
-			var x_local := -period * 0.5 + (float(i) + 0.5) * slot + rng.randf_range(-slot * 0.1, slot * 0.1)
-			var z_off := rng.randf_range(-3.0, 3.0)
-			var colors: Array = palette[rng.randi() % palette.size()]
-			var base_color: Color = colors[0]
-			var window_color: Color = colors[1]
-			base_color = base_color.lerp(HAZE_COLOR, haze)
-			window_color = window_color.lerp(HAZE_COLOR, haze * 0.8)
-			var size := Vector3(width, height, config["depth"])
-			for copy in [-1, 0, 1]:
-				var pos := Vector3(x_local + float(copy) * period, 0.0, z_off)
-				var node_name := "%s_%02d_%d" % [config["name"], i, copy + 1]
-				var building := _make_building(node_name, pos, size, base_color, window_color)
-				building.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				layer.add_child(building)
+	var layer := Node3D.new()
+	layer.name = "DistantNeighborhood"
+	generated_root.add_child(layer)
+	layer.position = Vector3.ZERO
+	parallax_layers.append({"node": layer, "scroll": 0.06, "period": 320.0})
+	var x := -150.0
+	var index := 0
+	while x < 170.0:
+		var width := rng.randf_range(5.0, 11.0)
+		var height := rng.randf_range(4.0, 11.0)
+		var depth := rng.randf_range(4.0, 7.0)
+		var colors: Array = palette[rng.randi() % palette.size()]
+		var haze_color := Color(0.73, 0.82, 0.84)
+		var base_color: Color = colors[0].lerp(haze_color, 0.42)
+		var window_color: Color = colors[1].lerp(Color(0.62, 0.73, 0.78), 0.35)
+		var z := rng.randf_range(-83.0, -67.0)
+		var building := _make_building("NeighborhoodBuilding_%02d" % index, Vector3(x, -0.6, z), Vector3(width, height, depth), base_color, window_color)
+		building.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		layer.add_child(building)
+		# Occasional trees and small roadside blocks break up the skyline silhouette.
+		if index % 3 == 0:
+			var trunk := _mesh_box("TreeTrunk_%02d" % index, Vector3(x + width * 0.65, 1.0, -42.0), Vector3(0.35, 2.0, 0.35), pole)
+			generated_root.add_child(trunk)
+			var foliage := _mesh_box("TreeCanopy_%02d" % index, Vector3(x + width * 0.65, 2.5, -42.0), Vector3(2.2, 2.2, 2.0), land_back)
+			generated_root.add_child(foliage)
+		x += width + rng.randf_range(3.0, 8.0)
+		index += 1
 
 
 func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_color: Color, window_color: Color) -> MeshInstance3D:
@@ -302,15 +238,12 @@ func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_co
 
 
 func _build_traversal_route() -> void:
-	# 2.5D side-scrolling route in the foreground play lane.
-	# Rooftops are intentionally 1000-2500 world units long so running is the
-	# default; gaps are reserved for occasional jumps and web-swing sections.
-	# Each entry is [center_x, top_y, length_x, depth_z].
+	# Foreground gameplay rooftops stay close to the camera; gaps are swing sections.
 	var segments := [
-		[1250.0, 4.8, 2500.0, 12.0],
-		[4000.0, 4.8, 2500.0, 12.0],
-		[5000.0, 4.8, 1000.0, 12.0],
-		[7000.0, 4.8, 2500.0, 12.0]
+		[22.0, 4.8, 44.0, 12.0],
+		[83.0, 4.8, 42.0, 12.0],
+		[145.0, 4.8, 44.0, 12.0],
+		[208.0, 4.8, 46.0, 12.0]
 	]
 	for i in segments.size():
 		var item = segments[i]
@@ -348,8 +281,8 @@ func _build_swing_anchor(index: int, position: Vector3) -> void:
 
 
 func _build_street_furniture() -> void:
-	for x in [-20.0, -10.0, 10.0, 20.0]:
-		_build_lamp(x, 17.5)
+	for x in [-30.0, 0.0, 30.0, 60.0, 90.0, 120.0]:
+		_build_lamp(x, -38.0)
 
 
 func _build_lamp(x: float, z: float) -> void:
