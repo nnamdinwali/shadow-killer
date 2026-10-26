@@ -1,8 +1,8 @@
 extends CanvasLayer
 
-## Code-driven modern HUD for the rooftop runner.
-## Every panel, bar, counter, color and touch zone is created by Godot at runtime.
-## No image, icon atlas, AI asset or generated texture is loaded by this script.
+## Minimal code-driven HUD for the rooftop runner.
+## Uses only native Godot Controls and text; no generated images, icons, hearts,
+## health bars, progress bars, or external UI assets are loaded.
 
 @export var max_health: float = 100.0
 @export var starting_coins: int = 16
@@ -12,11 +12,8 @@ var health: float
 var coins: int
 var distance_m: float = 0.0
 var is_paused := false
-
-var health_bar: ProgressBar
 var health_value: Label
 var coin_value: Label
-var distance_bar: ProgressBar
 var distance_value: Label
 var pause_button: Button
 var player: Node
@@ -35,24 +32,6 @@ func _process(delta: float) -> void:
 		distance_m = min(distance_goal, distance_m + delta * 3.0)
 		_refresh_hud()
 
-func _panel_style(color: Color, radius: int = 12, border_color := Color.TRANSPARENT, border_width: int = 0) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = radius
-	style.corner_radius_top_right = radius
-	style.corner_radius_bottom_left = radius
-	style.corner_radius_bottom_right = radius
-	style.border_color = border_color
-	style.border_width_left = border_width
-	style.border_width_top = border_width
-	style.border_width_right = border_width
-	style.border_width_bottom = border_width
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
-	return style
-
 func _label(text_value: String, size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = text_value
@@ -60,132 +39,71 @@ func _label(text_value: String, size: int, color: Color) -> Label:
 	label.add_theme_color_override("font_color", color)
 	return label
 
+func _transparent_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = Color.TRANSPARENT
+	style.set_border_width_all(0)
+	return style
+
 func _build_hud() -> void:
-	# Build the interface entirely from native Godot Controls and StyleBoxFlat.
-	# This is intentionally procedural so the UI remains editable in code.
+	# All visible status information is created as native Godot Labels.
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(root)
 
-	# Top-left compact status panel.
-	var status_panel := Panel.new()
-	status_panel.position = Vector2(24, 22)
-	status_panel.size = Vector2(320, 92)
-	status_panel.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
-	root.add_child(status_panel)
+	var status := Control.new()
+	status.position = Vector2(24, 22)
+	status.size = Vector2(250, 44)
+	root.add_child(status)
 
-	var hero_label := _label("HERO STATUS", 17, Color(0.68, 0.9, 1.0))
-	hero_label.visible = false
-	hero_label.position = Vector2(22, 12)
-	status_panel.add_child(hero_label)
+	health_value = _label("HP 100", 19, Color(0.9, 0.95, 1.0))
+	health_value.position = Vector2(0, 0)
+	health_value.size = Vector2(100, 36)
+	status.add_child(health_value)
 
-	var health_caption := _label("HEALTH", 14, Color(0.65, 0.74, 0.82))
-	health_caption.visible = false
-	health_caption.position = Vector2(22, 43)
-	status_panel.add_child(health_caption)
+	coin_value = _label("● 16", 19, Color(1.0, 0.8, 0.25))
+	coin_value.position = Vector2(105, 0)
+	coin_value.size = Vector2(100, 36)
+	status.add_child(coin_value)
 
-	var hearts := _label("♥ ♥ ♥", 28, Color(1.0, 0.22, 0.25))
-	hearts.visible = false
-	hearts.position = Vector2(18, 66)
-	status_panel.add_child(hearts)
-
-	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(18, 18)
-	health_bar.size = Vector2(190, 24)
-	health_bar.show_percentage = false
-	health_bar.add_theme_stylebox_override("background", _panel_style(Color(0.12, 0.16, 0.21, 1.0), 10, Color(0.38, 0.48, 0.58, 0.7), 1))
-	health_bar.add_theme_stylebox_override("fill", _panel_style(Color(0.9, 0.16, 0.2, 1.0), 10))
-	status_panel.add_child(health_bar)
-
-	health_value = _label("100 / 100", 17, Color.WHITE)
-	health_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	health_value.position = Vector2(18, 18)
-	health_value.size = Vector2(190, 24)
-	status_panel.add_child(health_value)
-
-	# Large readable coin counter with a native Godot-drawn coin badge.
-	var coin_badge := Panel.new()
-	coin_badge.position = Vector2(224, 18)
-	coin_badge.size = Vector2(72, 36)
-	coin_badge.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
-	status_panel.add_child(coin_badge)
-
-	var coin_icon := _label("●", 27, Color(1.0, 0.72, 0.08))
-	coin_icon.add_theme_color_override("font_shadow_color", Color(0.35, 0.18, 0.02, 0.9))
-	coin_icon.add_theme_constant_override("shadow_offset_x", 2)
-	coin_icon.add_theme_constant_override("shadow_offset_y", 2)
-	coin_icon.position = Vector2(12, 0)
-	coin_icon.size = Vector2(34, 34)
-	coin_badge.add_child(coin_icon)
-
-	var coin_caption := _label("COINS", 13, Color(1.0, 0.86, 0.42))
-	coin_caption.visible = false
-	coin_caption.position = Vector2(52, 3)
-	coin_badge.add_child(coin_caption)
-	coin_value = _label("16", 23, Color.WHITE)
-	coin_value.position = Vector2(36, 5)
-	coin_badge.add_child(coin_value)
-
-	# Top-center distance meter.
-	var distance_panel := Panel.new()
-	distance_panel.anchor_left = 0.5
-	distance_panel.anchor_right = 0.5
-	distance_panel.offset_left = -170
-	distance_panel.offset_right = 170
-	distance_panel.position.y = 22
-	distance_panel.size.y = 60
-	distance_panel.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
-	root.add_child(distance_panel)
-
-	var distance_title := _label("CITY RUN   •   DISTANCE", 16, Color(1.0, 0.87, 0.5))
-	distance_title.visible = false
-	distance_title.position = Vector2(20, 10)
-	distance_panel.add_child(distance_title)
-
-	distance_bar = ProgressBar.new()
-	distance_bar.position = Vector2(18, 22)
-	distance_bar.size = Vector2(245, 18)
-	distance_bar.show_percentage = false
-	distance_bar.add_theme_stylebox_override("background", _panel_style(Color(0.1, 0.14, 0.19, 1.0), 8))
-	distance_bar.add_theme_stylebox_override("fill", _panel_style(Color(0.98, 0.58, 0.08, 1.0), 8))
-	distance_panel.add_child(distance_bar)
-
-	distance_value = _label("0 m", 16, Color.WHITE)
-	distance_value.position = Vector2(270, 18)
-	distance_panel.add_child(distance_value)
+	distance_value = _label("0 m", 19, Color(1.0, 0.88, 0.5))
+	distance_value.anchor_left = 0.5
+	distance_value.anchor_right = 0.5
+	distance_value.offset_left = -45
+	distance_value.offset_right = 45
+	distance_value.position.y = 24
+	distance_value.size.y = 34
+	distance_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(distance_value)
 
 	pause_button = Button.new()
 	pause_button.text = "Ⅱ"
 	pause_button.tooltip_text = "Pause game"
-	pause_button.position = Vector2(-110, 24)
+	pause_button.position = Vector2(-92, 24)
 	pause_button.anchor_left = 1.0
 	pause_button.anchor_right = 1.0
-	pause_button.size = Vector2(82, 60)
-	pause_button.add_theme_font_size_override("font_size", 27)
+	pause_button.size = Vector2(64, 48)
+	pause_button.add_theme_font_size_override("font_size", 22)
 	pause_button.add_theme_color_override("font_color", Color.WHITE)
-	pause_button.add_theme_stylebox_override("normal", _panel_style(Color(0.025, 0.06, 0.11, 0.94), 15, Color(0.45, 0.84, 1.0, 0.8), 2))
-	pause_button.add_theme_stylebox_override("hover", _panel_style(Color(0.12, 0.3, 0.42, 0.98), 15, Color(0.85, 0.96, 1.0, 0.95), 2))
+	pause_button.add_theme_stylebox_override("normal", _transparent_style())
+	pause_button.add_theme_stylebox_override("hover", _transparent_style())
+	pause_button.add_theme_stylebox_override("pressed", _transparent_style())
 	pause_button.pressed.connect(_toggle_pause)
 	root.add_child(pause_button)
 
-	# Invisible native touch zones: left half jumps, right half attacks.
-	# They have no old-style JUMP/ATTACK text; the small icons are visual hints.
+	# Invisible native input zones: left half jumps, right half attacks.
 	var jump_zone := Button.new()
 	jump_zone.name = "JumpTouchZone"
 	jump_zone.anchor_right = 0.5
 	jump_zone.anchor_bottom = 1.0
 	jump_zone.offset_top = 180.0
 	jump_zone.offset_bottom = -12.0
-	jump_zone.text = ""
 	jump_zone.focus_mode = Control.FOCUS_NONE
-	jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var invisible_touch_style := _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0)
-	jump_zone.add_theme_stylebox_override("normal", invisible_touch_style)
-	jump_zone.add_theme_stylebox_override("hover", invisible_touch_style)
-	jump_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
-	jump_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	jump_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	jump_zone.add_theme_stylebox_override("normal", _transparent_style())
+	jump_zone.add_theme_stylebox_override("pressed", _transparent_style())
 	root.add_child(jump_zone)
 
 	var attack_zone := Button.new()
@@ -195,18 +113,13 @@ func _build_hud() -> void:
 	attack_zone.anchor_bottom = 1.0
 	attack_zone.offset_top = 180.0
 	attack_zone.offset_bottom = -12.0
-	attack_zone.text = ""
 	attack_zone.focus_mode = Control.FOCUS_NONE
-	attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	attack_zone.add_theme_stylebox_override("normal", invisible_touch_style)
-	attack_zone.add_theme_stylebox_override("hover", invisible_touch_style)
-	attack_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
-	attack_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	attack_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	attack_zone.add_theme_stylebox_override("normal", _transparent_style())
+	attack_zone.add_theme_stylebox_override("pressed", _transparent_style())
 	root.add_child(attack_zone)
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Direct input keeps controls reliable on Android and on desktop testing.
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode in [KEY_SPACE, KEY_W, KEY_UP]:
 			_on_jump_pressed()
@@ -220,27 +133,21 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_action_position(screen_position: Vector2) -> void:
 	if screen_position.y < 180.0:
 		return
-	var half_width := get_viewport().get_visible_rect().size.x * 0.5
-	if screen_position.x < half_width:
+	if screen_position.x < get_viewport().get_visible_rect().size.x * 0.5:
 		_on_jump_pressed()
 	else:
 		_on_attack_pressed()
 
 func _refresh_hud() -> void:
-	if health_bar:
-		health_bar.max_value = max_health
-		health_bar.value = health
-		health_value.text = "%d / %d" % [roundi(health), roundi(max_health)]
-		coin_value.text = "%d" % coins
-		distance_bar.max_value = distance_goal
-		distance_bar.value = distance_m
+	if health_value:
+		health_value.text = "HP %d" % roundi(health)
+		coin_value.text = "● %d" % coins
 		distance_value.text = "%d m" % roundi(distance_m)
 
 func _toggle_pause() -> void:
 	is_paused = not is_paused
 	get_tree().paused = is_paused
 	pause_button.text = "▶" if is_paused else "Ⅱ"
-	pause_button.tooltip_text = "Resume game" if is_paused else "Pause game"
 
 func _on_node_added(node: Node) -> void:
 	if node.is_in_group("player"):
