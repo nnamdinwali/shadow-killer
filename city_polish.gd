@@ -214,18 +214,11 @@ void fragment() {
 func _build_ground() -> void:
 	var length := LAND_X_MAX - LAND_X_MIN
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
-	# Front land: in front of the river, under the rooftop route.
-	_box("LandFront", Vector3(center_x, -0.5, 17.0), Vector3(length, 1.0, 68.0), land_front)
-	# Back land: park behind the river that the skyline stands on.
+	# Keep foreground ground and road out of the camera-to-rooftop sightline.
+	# They previously hid the building walls and made the roof slabs look airborne.
 	_box("LandBack", Vector3(center_x, -0.5, -88.0), Vector3(length, 1.0, 124.0), land_back)
-	# Stone quay walls along both river banks.
-	_box("QuayFront", Vector3(center_x, -0.3, -17.0), Vector3(length, 0.6, 0.6), quay)
 	_box("QuayBack", Vector3(center_x, -0.3, -26.0), Vector3(length, 0.6, 0.6), quay)
-	# The river sits lower than the land so the banks read as real banks.
 	_box("River", Vector3(center_x, -0.65, -21.5), Vector3(length, 0.6, 9.0), water_material)
-	# Plain road strip in front of the route.
-	_box("Road", Vector3(center_x, 0.04, 14.0), Vector3(length, 0.08, 7.0), asphalt)
-	_box("RoadLine", Vector3(center_x, 0.09, 14.0), Vector3(length, 0.02, 0.18), lamp_glow)
 
 
 func _build_skyline() -> void:
@@ -293,17 +286,18 @@ func _build_traversal_route() -> void:
 
 
 func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
-	# Every route piece gets a colorful building mass underneath it, down to the ground.
-	var building_height := center.y - 0.28
-	var building_size := Vector3(size.x * 0.88, max(building_height + 0.2, 1.4), size.z * 0.82)
 	var colors: Array = palette[index % palette.size()]
-	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, -0.2, center.z), building_size, colors[0], colors[1])
+	# Extend the colored building mass from ground level to the roof underside.
+	var ground_y := 0.0
+	var roof_bottom_y := center.y - size.y * 0.5
+	var building_height := max(roof_bottom_y - ground_y, 1.0)
+	var building_size := Vector3(size.x * 0.88, building_height, size.z * 0.82)
+	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, ground_y, center.z), building_size, colors[0], colors[1])
 	generated_root.add_child(building)
-	_box("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
+	_box("RooftopBuildingCap_%02d" % index, Vector3(center.x, roof_bottom_y - 0.08, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
 	_solid_box("TraversalRoof_%02d" % index, center, size, rooftop)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
-	# Small rooftop service blocks make the platforms feel occupied.
 	_box("RooftopUnit_%02d" % index, center + Vector3(size.x * 0.18, size.y * 0.85, -0.25), Vector3(1.0, 0.55, 0.8), metal)
 
 
