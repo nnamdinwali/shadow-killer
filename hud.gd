@@ -165,8 +165,8 @@ func _build_hud() -> void:
 	# They have no old-style JUMP/ATTACK text; the small icons are visual hints.
 	var jump_zone := Button.new()
 	jump_zone.name = "JumpTouchZone"
-	jump_zone.anchor_right = 0.5
-	jump_zone.anchor_bottom = 1.0
+		jump_zone.anchor_right = 0.5
+		jump_zone.anchor_bottom = 1.0
 		jump_zone.offset_top = 180.0
 		jump_zone.offset_bottom = -12.0
 		jump_zone.text = ""
@@ -182,9 +182,9 @@ func _build_hud() -> void:
 
 	var attack_zone := Button.new()
 	attack_zone.name = "AttackTouchZone"
-	attack_zone.anchor_left = 0.5
-	attack_zone.anchor_right = 1.0
-	attack_zone.anchor_bottom = 1.0
+		attack_zone.anchor_left = 0.5
+		attack_zone.anchor_right = 1.0
+		attack_zone.anchor_bottom = 1.0
 		attack_zone.offset_top = 180.0
 		attack_zone.offset_bottom = -12.0
 		attack_zone.text = ""
