@@ -72,7 +72,7 @@ func _build_hud() -> void:
 	var status_panel := Panel.new()
 	status_panel.position = Vector2(24, 22)
 	status_panel.size = Vector2(320, 92)
-	status_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.06, 0.11, 0.93), 18, Color(0.35, 0.78, 1.0, 0.7), 2))
+	status_panel.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
 	root.add_child(status_panel)
 
 	var hero_label := _label("HERO STATUS", 17, Color(0.68, 0.9, 1.0))
@@ -108,7 +108,7 @@ func _build_hud() -> void:
 	var coin_badge := Panel.new()
 	coin_badge.position = Vector2(224, 18)
 	coin_badge.size = Vector2(72, 36)
-	coin_badge.add_theme_stylebox_override("panel", _panel_style(Color(0.08, 0.12, 0.18, 0.95), 10, Color(1.0, 0.74, 0.18, 0.75), 2))
+	coin_badge.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
 	status_panel.add_child(coin_badge)
 
 	var coin_icon := _label("●", 27, Color(1.0, 0.72, 0.08))
@@ -135,7 +135,7 @@ func _build_hud() -> void:
 	distance_panel.offset_right = 170
 	distance_panel.position.y = 22
 	distance_panel.size.y = 60
-	distance_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.06, 0.11, 0.93), 18, Color(1.0, 0.74, 0.2, 0.65), 2))
+	distance_panel.add_theme_stylebox_override("panel", _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0))
 	root.add_child(distance_panel)
 
 	var distance_title := _label("CITY RUN   •   DISTANCE", 16, Color(1.0, 0.87, 0.5))
@@ -185,7 +185,7 @@ func _build_hud() -> void:
 	jump_zone.add_theme_stylebox_override("hover", invisible_touch_style)
 	jump_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
 	jump_zone.add_theme_stylebox_override("focus", invisible_touch_style)
-	jump_zone.pressed.connect(_on_jump_pressed)
+	jump_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(jump_zone)
 
 	var attack_zone := Button.new()
@@ -202,8 +202,29 @@ func _build_hud() -> void:
 	attack_zone.add_theme_stylebox_override("hover", invisible_touch_style)
 	attack_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
 	attack_zone.add_theme_stylebox_override("focus", invisible_touch_style)
-	attack_zone.pressed.connect(_on_attack_pressed)
+	attack_zone.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(attack_zone)
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Direct input keeps controls reliable on Android and on desktop testing.
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_SPACE, KEY_W, KEY_UP]:
+			_on_jump_pressed()
+		elif event.keycode in [KEY_J, KEY_X, KEY_ENTER]:
+			_on_attack_pressed()
+	elif event is InputEventScreenTouch and event.pressed:
+		_handle_action_position(event.position)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_action_position(event.position)
+
+func _handle_action_position(screen_position: Vector2) -> void:
+	if screen_position.y < 180.0:
+		return
+	var half_width := get_viewport().get_visible_rect().size.x * 0.5
+	if screen_position.x < half_width:
+		_on_jump_pressed()
+	else:
+		_on_attack_pressed()
 
 func _refresh_hud() -> void:
 	if health_bar:
@@ -226,9 +247,13 @@ func _on_node_added(node: Node) -> void:
 		player = node
 
 func _on_jump_pressed() -> void:
+	if not is_instance_valid(player):
+		player = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(player) and player.has_method("jump"):
 		player.jump()
 
 func _on_attack_pressed() -> void:
+	if not is_instance_valid(player):
+		player = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(player) and player.has_method("attack"):
 		player.attack()
