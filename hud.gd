@@ -60,7 +60,7 @@ func _build_hud() -> void:
 
 	var status := Control.new()
 	status.position = Vector2(24, 22)
-	status.size = Vector2(250, 44)
+	status.size = Vector2(320, 70)
 	root.add_child(status)
 
 	health_value = _label("HP 100", 19, Color(0.9, 0.95, 1.0))
@@ -68,10 +68,11 @@ func _build_hud() -> void:
 	health_value.size = Vector2(100, 36)
 	status.add_child(health_value)
 	health_bar = ProgressBar.new()
+	health_bar.theme = pixel_theme
 	health_bar.theme_type_variation = "RedBar"
 	health_bar.show_percentage = false
 	health_bar.position = Vector2(0, 28)
-	health_bar.size = Vector2(84, 10)
+	health_bar.size = Vector2(160, 16)
 	status.add_child(health_bar)
 
 	coin_value = _label("● 16", 19, Color(1.0, 0.8, 0.25))
@@ -97,30 +98,29 @@ func _build_hud() -> void:
 	root.add_child(distance_value)
 
 	distance_bar = ProgressBar.new()
+	distance_bar.theme = pixel_theme
 	distance_bar.theme_type_variation = "GoldBar"
 	distance_bar.show_percentage = false
 	distance_bar.anchor_left = 0.5
 	distance_bar.anchor_right = 0.5
-	distance_bar.offset_left = -110
-	distance_bar.offset_right = 110
+	distance_bar.offset_left = -150
+	distance_bar.offset_right = 150
 	distance_bar.position.y = 52
-	distance_bar.size.y = 10
+	distance_bar.size.y = 16
 	root.add_child(distance_bar)
 
 	pause_button = Button.new()
-	pause_button.text = "Ⅱ"
+	pause_button.text = ""
 	pause_button.icon = load("res://addons/pixel_ui/icons/pause.png")
 	pause_button.expand_icon = true
 	pause_button.tooltip_text = "Pause game"
-	pause_button.position = Vector2(-92, 24)
+	pause_button.position = Vector2(-120, 16)
 	pause_button.anchor_left = 1.0
 	pause_button.anchor_right = 1.0
-	pause_button.size = Vector2(64, 48)
-	pause_button.add_theme_font_size_override("font_size", 22)
-	pause_button.add_theme_color_override("font_color", Color.WHITE)
-	pause_button.add_theme_stylebox_override("normal", _transparent_style())
-	pause_button.add_theme_stylebox_override("hover", _transparent_style())
-	pause_button.add_theme_stylebox_override("pressed", _transparent_style())
+	pause_button.size = Vector2(96, 72)
+	pause_button.theme = pixel_theme
+	pause_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_button.z_index = 20
 	pause_button.pressed.connect(_toggle_pause)
 	root.add_child(pause_button)
 
