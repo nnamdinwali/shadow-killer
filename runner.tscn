@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/animated_runner.glb" id="1_model"]
+[ext_resource type="Script" path="res://player_controller.gd" id="2_controller"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape_runner"]
+radius = 0.575
+height = 4.0
+
+[node name="Runner" type="CharacterBody3D"]
+script = ExtResource("2_controller")
+
+[node name="CharacterModel" parent="." instance=ExtResource("1_model")]
+rotation_degrees = Vector3(0, 90, 0)
+scale = Vector3(0.035, 0.035, 0.035)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 2, 0)
+shape = SubResource("CapsuleShape_runner")

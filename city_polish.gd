@@ -4,27 +4,16 @@ extends Node3D
 ## Everything here is built from native Godot meshes, materials and shader code;
 ## no imported art is used.
 ##
-## Layout (z axis): the rooftop route runs along +x at z -6..6, a park and the
-## far skyline sit behind a river, and the city rolls past the camera in
-## parallax layers so the background never runs out.
+## Layout: close foreground rooftop route, a simple street/terrain band, and
+## sparse low-rise neighborhood buildings far behind it. No water or tower wall.
 
 const LAND_X_MIN := -400.0
 const LAND_X_MAX := 9000.0
 const HAZE_COLOR := Color(0.78, 0.90, 1.0)
+const RUNNER_SCROLL_SPEED := 5.5
+const ROUTE_LOOP_LENGTH := 420.0
 
-## Parallax skyline layers. "scroll" is the share of the camera speed the layer
-## appears to move on screen (1.0 = same as the route, 0.0 = painted on the sky).
-## "period" is the repeat distance in meters; layers are built three times side
-## by side and wrapped, so the city is endless.
-const SKY_LAYERS := [
-	{"name": "FarSkyline", "z": -72.0, "scroll": 0.10, "period": 260.0, "count": 16,
-		"w_min": 9.0, "w_max": 16.0, "h_min": 28.0, "h_max": 58.0, "depth": 9.0, "haze": 0.15},
-	{"name": "MidSkyline", "z": -40.0, "scroll": 0.30, "period": 170.0, "count": 10,
-		"w_min": 10.0, "w_max": 17.0, "h_min": 18.0, "h_max": 36.0, "depth": 9.0, "haze": 0.05},
-	{"name": "NearSkyline", "z": -11.5, "scroll": 0.62, "period": 110.0, "count": 7,
-		"w_min": 8.0, "w_max": 13.0, "h_min": 10.0, "h_max": 18.0, "depth": 8.0, "haze": 0.0},
-]
-
+## The distant neighborhood moves slowly for subtle depth.
 const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
 
 var asphalt := StandardMaterial3D.new()
@@ -37,7 +26,6 @@ var pole := StandardMaterial3D.new()
 var lamp_glow := StandardMaterial3D.new()
 var rooftop := StandardMaterial3D.new()
 var rooftop_edge := StandardMaterial3D.new()
-var water_material := ShaderMaterial.new()
 var building_shader := Shader.new()
 var building_material := ShaderMaterial.new()
 var palette: Array = []
@@ -63,6 +51,7 @@ func _ready() -> void:
 	_build_skyline()
 	_build_traversal_route()
 	_build_street_furniture()
+	_build_city_props()
 	_build_fall_zone()
 	for cloud_name in CLOUD_NODES:
 		var cloud := get_node_or_null(cloud_name) as Node3D
@@ -74,6 +63,12 @@ func _process(_delta: float) -> void:
 	# Parallax only runs in the game, so the editor view stays put.
 	if Engine.is_editor_hint():
 		return
+	if generated_root != null:
+		# Move the world instead of the player. The animated runner stays framed,
+		# while moving StaticBody3D chunks still let the player fall through gaps.
+		generated_root.position.x -= RUNNER_SCROLL_SPEED * _delta
+		if generated_root.position.x <= -ROUTE_LOOP_LENGTH:
+			generated_root.position.x += ROUTE_LOOP_LENGTH
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
@@ -123,26 +118,6 @@ func _setup_materials() -> void:
 	rooftop_edge.albedo_color = Color("ff6b57")
 	rooftop_edge.roughness = 0.7
 
-	var water_shader := Shader.new()
-	water_shader.code = """
-shader_type spatial;
-render_mode cull_back;
-
-uniform vec4 shallow_color : source_color = vec4(0.25, 0.88, 0.95, 1.0);
-uniform vec4 deep_color : source_color = vec4(0.04, 0.52, 0.88, 1.0);
-
-void fragment() {
-	vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float a = sin(wp.x * 0.35 + TIME * 0.9) * 0.5 + 0.5;
-	float b = sin(wp.z * 0.9 - TIME * 0.6 + wp.x * 0.1) * 0.5 + 0.5;
-	float glint = smoothstep(0.80, 1.0, a * b);
-	vec3 col = mix(deep_color.rgb, shallow_color.rgb, 0.35 + 0.5 * a * b);
-	ALBEDO = col + vec3(glint) * 0.35;
-	ROUGHNESS = 0.18;
-	SPECULAR = 0.7;
-}
-"""
-	water_material.shader = water_shader
 
 	# One shader draws every building. Colors and size come per building
 	# through instance uniforms, and windows are laid out in meters so a
@@ -212,53 +187,49 @@ void fragment() {
 
 
 func _build_ground() -> void:
+	# Distant land and a quiet street sit behind the playable rooftop.
 	var length := LAND_X_MAX - LAND_X_MIN
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
-	# Front land: in front of the river, under the rooftop route.
-	_box("LandFront", Vector3(center_x, -0.5, 17.0), Vector3(length, 1.0, 68.0), land_front)
-	# Back land: park behind the river that the skyline stands on.
-	_box("LandBack", Vector3(center_x, -0.5, -88.0), Vector3(length, 1.0, 124.0), land_back)
-	# Stone quay walls along both river banks.
-	_box("QuayFront", Vector3(center_x, -0.3, -17.0), Vector3(length, 0.6, 0.6), quay)
-	_box("QuayBack", Vector3(center_x, -0.3, -26.0), Vector3(length, 0.6, 0.6), quay)
-	# The river sits lower than the land so the banks read as real banks.
-	_box("River", Vector3(center_x, -0.65, -21.5), Vector3(length, 0.6, 9.0), water_material)
-	# Plain road strip in front of the route.
-	_box("Road", Vector3(center_x, 0.04, 14.0), Vector3(length, 0.08, 7.0), asphalt)
-	_box("RoadLine", Vector3(center_x, 0.09, 14.0), Vector3(length, 0.02, 0.18), lamp_glow)
+	_box("DistantTerrain", Vector3(center_x, -1.7, -105.0), Vector3(length, 2.0, 70.0), land_back)
+	_box("BackStreet", Vector3(center_x, -0.55, -49.0), Vector3(length, 0.25, 24.0), asphalt)
+	_box("StreetSidewalk", Vector3(center_x, -0.35, -35.5), Vector3(length, 0.3, 3.0), land_front)
+	_box("StreetCurb", Vector3(center_x, -0.18, -37.0), Vector3(length, 0.18, 0.25), curb)
+	# Sparse lane markings give the background a recognizable street scale.
+	for x in range(int(LAND_X_MIN), int(LAND_X_MAX), 34):
+		_box("LaneMark_%d" % x, Vector3(float(x), -0.405, -49.0), Vector3(12.0, 0.025, 0.18), curb)
 
 
 func _build_skyline() -> void:
+	# Low, scattered neighborhood buildings: one calm background band, not stacked towers.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7341
-	for config in SKY_LAYERS:
-		var layer := Node3D.new()
-		layer.name = config["name"]
-		generated_root.add_child(layer)
-		layer.position = Vector3(0.0, 0.0, config["z"])
-		parallax_layers.append({"node": layer, "scroll": config["scroll"], "period": config["period"]})
-
-		var period: float = config["period"]
-		var count: int = config["count"]
-		var slot := period / float(count)
-		var haze: float = config["haze"]
-		for i in count:
-			var width := rng.randf_range(config["w_min"], min(config["w_max"], slot * 0.95))
-			var height := rng.randf_range(config["h_min"], config["h_max"])
-			var x_local := -period * 0.5 + (float(i) + 0.5) * slot + rng.randf_range(-slot * 0.1, slot * 0.1)
-			var z_off := rng.randf_range(-3.0, 3.0)
-			var colors: Array = palette[rng.randi() % palette.size()]
-			var base_color: Color = colors[0]
-			var window_color: Color = colors[1]
-			base_color = base_color.lerp(HAZE_COLOR, haze)
-			window_color = window_color.lerp(HAZE_COLOR, haze * 0.8)
-			var size := Vector3(width, height, config["depth"])
-			for copy in [-1, 0, 1]:
-				var pos := Vector3(x_local + float(copy) * period, 0.0, z_off)
-				var node_name := "%s_%02d_%d" % [config["name"], i, copy + 1]
-				var building := _make_building(node_name, pos, size, base_color, window_color)
-				building.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				layer.add_child(building)
+	var layer := Node3D.new()
+	layer.name = "DistantNeighborhood"
+	generated_root.add_child(layer)
+	layer.position = Vector3.ZERO
+	parallax_layers.append({"node": layer, "scroll": 0.06, "period": 320.0})
+	var x := -150.0
+	var index := 0
+	while x < 170.0:
+		var width := rng.randf_range(5.0, 11.0)
+		var height := rng.randf_range(4.0, 11.0)
+		var depth := rng.randf_range(4.0, 7.0)
+		var colors: Array = palette[rng.randi() % palette.size()]
+		var haze_color := Color(0.73, 0.82, 0.84)
+		var base_color: Color = colors[0].lerp(haze_color, 0.42)
+		var window_color: Color = colors[1].lerp(Color(0.62, 0.73, 0.78), 0.35)
+		var z := rng.randf_range(-83.0, -67.0)
+		var building := _make_building("NeighborhoodBuilding_%02d" % index, Vector3(x, -0.6, z), Vector3(width, height, depth), base_color, window_color)
+		building.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		layer.add_child(building)
+		# Occasional trees and small roadside blocks break up the skyline silhouette.
+		if index % 3 == 0:
+			var trunk := _mesh_box("TreeTrunk_%02d" % index, Vector3(x + width * 0.65, 1.0, -42.0), Vector3(0.35, 2.0, 0.35), pole)
+			generated_root.add_child(trunk)
+			var foliage := _mesh_box("TreeCanopy_%02d" % index, Vector3(x + width * 0.65, 2.5, -42.0), Vector3(2.2, 2.2, 2.0), land_back)
+			generated_root.add_child(foliage)
+		x += width + rng.randf_range(3.0, 8.0)
+		index += 1
 
 
 func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_color: Color, window_color: Color) -> MeshInstance3D:
@@ -276,15 +247,12 @@ func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_co
 
 
 func _build_traversal_route() -> void:
-	# 2.5D side-scrolling route in the foreground play lane.
-	# Rooftops are intentionally 1000-2500 world units long so running is the
-	# default; gaps are reserved for occasional jumps and web-swing sections.
-	# Each entry is [center_x, top_y, length_x, depth_z].
+	# Foreground gameplay rooftops stay close to the camera; gaps are swing sections.
 	var segments := [
-		[1250.0, 4.8, 2500.0, 12.0],
-		[4000.0, 4.8, 2500.0, 12.0],
-		[5000.0, 4.8, 1000.0, 12.0],
-		[7000.0, 4.8, 2500.0, 12.0]
+		[24.0, 4.8, 72.0, 12.0],
+		[119.0, 4.8, 76.0, 12.0],
+		[218.0, 4.8, 76.0, 12.0],
+		[317.0, 4.8, 80.0, 12.0]
 	]
 	for i in segments.size():
 		var item = segments[i]
@@ -293,17 +261,18 @@ func _build_traversal_route() -> void:
 
 
 func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
-	# Every route piece gets a colorful building mass underneath it, down to the ground.
-	var building_height := center.y - 0.28
-	var building_size := Vector3(size.x * 0.88, max(building_height + 0.2, 1.4), size.z * 0.82)
 	var colors: Array = palette[index % palette.size()]
-	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, -0.2, center.z), building_size, colors[0], colors[1])
+	# Extend the colored building mass from ground level to the roof underside.
+	var ground_y := 0.0
+	var roof_bottom_y := center.y - size.y * 0.5
+	var building_height: float = maxf(roof_bottom_y - ground_y, 1.0)
+	var building_size := Vector3(size.x * 0.88, building_height, size.z * 0.82)
+	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, ground_y, center.z), building_size, colors[0], colors[1])
 	generated_root.add_child(building)
-	_box("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
+	_box("RooftopBuildingCap_%02d" % index, Vector3(center.x, roof_bottom_y - 0.08, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
 	_solid_box("TraversalRoof_%02d" % index, center, size, rooftop)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
-	# Small rooftop service blocks make the platforms feel occupied.
 	_box("RooftopUnit_%02d" % index, center + Vector3(size.x * 0.18, size.y * 0.85, -0.25), Vector3(1.0, 0.55, 0.8), metal)
 
 
@@ -321,8 +290,59 @@ func _build_swing_anchor(index: int, position: Vector3) -> void:
 
 
 func _build_street_furniture() -> void:
-	for x in [-20.0, -10.0, 10.0, 20.0]:
-		_build_lamp(x, 17.5)
+	for x in [-30.0, 0.0, 30.0, 60.0, 90.0, 120.0]:
+		_build_lamp(x, -38.0)
+
+
+func _build_city_props() -> void:
+	# A closer street band gives the runner a readable, lived-in city scale.
+	# These props use only native Godot boxes and deterministic placement.
+	_box("MainRoad", Vector3(130.0, -0.52, -24.0), Vector3(620.0, 0.18, 18.0), asphalt)
+	_box("MainSidewalk", Vector3(130.0, -0.30, -13.8), Vector3(620.0, 0.30, 2.8), land_front)
+	_box("MainCurb", Vector3(130.0, -0.12, -15.2), Vector3(620.0, 0.22, 0.24), curb)
+	for x in range(-140, 421, 18):
+		_box("RoadMark_%d" % x, Vector3(float(x), -0.41, -24.0), Vector3(8.0, 0.025, 0.16), curb)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 48291
+	for i in 16:
+		var x := -110.0 + float(i) * 34.0 + rng.randf_range(-7.0, 7.0)
+		if i % 3 == 0:
+			_make_city_car(i, Vector3(x, -0.05, -28.5), rng.randf_range(0.85, 1.15))
+		elif i % 3 == 1:
+			_make_dumpster(i, Vector3(x, 0.55, -16.3))
+		else:
+			_make_street_sign(i, Vector3(x, 0.0, -16.0))
+
+	for i in 9:
+		var x := -96.0 + float(i) * 42.0 + rng.randf_range(-8.0, 8.0)
+		_make_tree_prop(i, Vector3(x, 0.0, -12.5), rng.randf_range(0.8, 1.25))
+
+
+func _make_city_car(index: int, position: Vector3, scale: float) -> void:
+	var car_color: Color = palette[index % palette.size()][0]
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = car_color
+	var cabin_material := StandardMaterial3D.new()
+	cabin_material.albedo_color = car_color.lightened(0.18)
+	_box("ParkedCarBody_%02d" % index, position + Vector3(0.0, 0.45 * scale, 0.0), Vector3(4.8, 0.7, 1.8) * scale, body_material)
+	_box("ParkedCarCabin_%02d" % index, position + Vector3(-0.15 * scale, 0.95 * scale, 0.0), Vector3(2.2, 0.65, 1.45) * scale, cabin_material)
+	_box("ParkedCarWindow_%02d" % index, position + Vector3(-0.15 * scale, 1.02 * scale, 0.0), Vector3(1.5, 0.28, 1.48) * scale, metal)
+
+
+func _make_dumpster(index: int, position: Vector3) -> void:
+	_box("Dumpster_%02d" % index, position, Vector3(2.0, 1.2, 1.4), metal)
+	_box("DumpsterLid_%02d" % index, position + Vector3(0.0, 0.68, 0.0), Vector3(2.1, 0.12, 1.48), rooftop_edge)
+
+
+func _make_street_sign(index: int, position: Vector3) -> void:
+	_box("SignPole_%02d" % index, position + Vector3(0.0, 1.4, 0.0), Vector3(0.10, 2.8, 0.10), pole)
+	_box("SignBoard_%02d" % index, position + Vector3(0.0, 2.8, 0.0), Vector3(1.25, 0.8, 0.12), metal)
+
+
+func _make_tree_prop(index: int, position: Vector3, scale: float) -> void:
+	_box("TreeTrunkClose_%02d" % index, position + Vector3(0.0, 1.1 * scale, 0.0), Vector3(0.30, 2.2, 0.30) * scale, pole)
+	_box("TreeCanopyClose_%02d" % index, position + Vector3(0.0, 2.55 * scale, 0.0), Vector3(2.1, 2.0, 1.8) * scale, land_back)
 
 
 func _build_lamp(x: float, z: float) -> void:
