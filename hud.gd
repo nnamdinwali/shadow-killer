@@ -51,6 +51,9 @@ func _build_hud() -> void:
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	var pixel_theme := load("res://addons/pixel_ui/themes/wood.tres") as Theme
+	if pixel_theme:
+		root.theme = pixel_theme
 	add_child(root)
 
 	var status := Control.new()
@@ -67,6 +70,13 @@ func _build_hud() -> void:
 	coin_value.position = Vector2(105, 0)
 	coin_value.size = Vector2(100, 36)
 	status.add_child(coin_value)
+	var coin_icon := TextureRect.new()
+	coin_icon.texture = load("res://addons/pixel_ui/icons/coin.png")
+	coin_icon.position = Vector2(90, 8)
+	coin_icon.size = Vector2(16, 16)
+	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	status.add_child(coin_icon)
 
 	distance_value = _label("0 m", 19, Color(1.0, 0.88, 0.5))
 	distance_value.anchor_left = 0.5
@@ -80,6 +90,8 @@ func _build_hud() -> void:
 
 	pause_button = Button.new()
 	pause_button.text = "Ⅱ"
+	pause_button.icon = load("res://addons/pixel_ui/icons/pause.png")
+	pause_button.expand_icon = true
 	pause_button.tooltip_text = "Pause game"
 	pause_button.position = Vector2(-92, 24)
 	pause_button.anchor_left = 1.0
