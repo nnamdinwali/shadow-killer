@@ -60,10 +60,11 @@ func _build_hud() -> void:
 
 	var status := Control.new()
 	status.position = Vector2(24, 22)
-	status.size = Vector2(320, 70)
+	status.size = Vector2(460, 100)
 	root.add_child(status)
 
 	health_value = _label("HP 100", 19, Color(0.9, 0.95, 1.0))
+	health_value.visible = false
 	health_value.position = Vector2(0, 0)
 	health_value.size = Vector2(100, 36)
 	status.add_child(health_value)
@@ -71,23 +72,33 @@ func _build_hud() -> void:
 	health_bar.theme = pixel_theme
 	health_bar.theme_type_variation = "RedBar"
 	health_bar.show_percentage = false
-	health_bar.position = Vector2(0, 28)
-	health_bar.size = Vector2(160, 16)
+	health_bar.position = Vector2(0, 38)
+	health_bar.size = Vector2(360, 28)
 	status.add_child(health_bar)
 
 	coin_value = _label("● 16", 19, Color(1.0, 0.8, 0.25))
+	coin_value.visible = false
 	coin_value.position = Vector2(105, 0)
 	coin_value.size = Vector2(100, 36)
 	status.add_child(coin_value)
 	var coin_icon := TextureRect.new()
 	coin_icon.texture = load("res://addons/pixel_ui/icons/coin.png")
-	coin_icon.position = Vector2(90, 8)
-	coin_icon.size = Vector2(16, 16)
+	coin_icon.position = Vector2(380, 34)
+	coin_icon.size = Vector2(42, 42)
 	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	status.add_child(coin_icon)
+	for heart_index in 3:
+		var heart_icon := TextureRect.new()
+		heart_icon.texture = load("res://addons/pixel_ui/icons/heart.png")
+		heart_icon.position = Vector2(float(heart_index) * 34.0, 0)
+		heart_icon.size = Vector2(28, 28)
+		heart_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		heart_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		status.add_child(heart_icon)
 
 	distance_value = _label("0 m", 19, Color(1.0, 0.88, 0.5))
+	distance_value.visible = false
 	distance_value.anchor_left = 0.5
 	distance_value.anchor_right = 0.5
 	distance_value.offset_left = -45
@@ -103,10 +114,10 @@ func _build_hud() -> void:
 	distance_bar.show_percentage = false
 	distance_bar.anchor_left = 0.5
 	distance_bar.anchor_right = 0.5
-	distance_bar.offset_left = -150
-	distance_bar.offset_right = 150
-	distance_bar.position.y = 52
-	distance_bar.size.y = 16
+	distance_bar.offset_left = -250
+	distance_bar.offset_right = 250
+	distance_bar.position.y = 66
+	distance_bar.size.y = 24
 	root.add_child(distance_bar)
 
 	pause_button = Button.new()
@@ -114,10 +125,10 @@ func _build_hud() -> void:
 	pause_button.icon = load("res://addons/pixel_ui/icons/pause.png")
 	pause_button.expand_icon = true
 	pause_button.tooltip_text = "Pause game"
-	pause_button.position = Vector2(-120, 16)
+	pause_button.position = Vector2(-160, 10)
 	pause_button.anchor_left = 1.0
 	pause_button.anchor_right = 1.0
-	pause_button.size = Vector2(96, 72)
+	pause_button.size = Vector2(144, 96)
 	pause_button.theme = pixel_theme
 	pause_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	pause_button.z_index = 20
