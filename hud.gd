@@ -167,11 +167,16 @@ func _build_hud() -> void:
 	jump_zone.name = "JumpTouchZone"
 	jump_zone.anchor_right = 0.5
 	jump_zone.anchor_bottom = 1.0
-	jump_zone.offset_top = 180.0
-	jump_zone.offset_bottom = -12.0
-	jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	jump_zone.add_theme_stylebox_override("normal", _panel_style(Color(0.08, 0.55, 0.9, 0.035), 18, Color(0.55, 0.86, 1.0, 0.12), 1))
-	jump_zone.add_theme_stylebox_override("pressed", _panel_style(Color(0.25, 0.75, 1.0, 0.16), 18, Color(0.7, 0.95, 1.0, 0.36), 2))
+		jump_zone.offset_top = 180.0
+		jump_zone.offset_bottom = -12.0
+		jump_zone.text = ""
+		jump_zone.focus_mode = Control.FOCUS_NONE
+		jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var invisible_touch_style := _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0)
+		jump_zone.add_theme_stylebox_override("normal", invisible_touch_style)
+		jump_zone.add_theme_stylebox_override("hover", invisible_touch_style)
+		jump_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
+		jump_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	jump_zone.pressed.connect(_on_jump_pressed)
 	root.add_child(jump_zone)
 
@@ -180,11 +185,15 @@ func _build_hud() -> void:
 	attack_zone.anchor_left = 0.5
 	attack_zone.anchor_right = 1.0
 	attack_zone.anchor_bottom = 1.0
-	attack_zone.offset_top = 180.0
-	attack_zone.offset_bottom = -12.0
-	attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	attack_zone.add_theme_stylebox_override("normal", _panel_style(Color(0.92, 0.24, 0.18, 0.035), 18, Color(1.0, 0.65, 0.45, 0.12), 1))
-	attack_zone.add_theme_stylebox_override("pressed", _panel_style(Color(1.0, 0.32, 0.18, 0.16), 18, Color(1.0, 0.8, 0.6, 0.36), 2))
+		attack_zone.offset_top = 180.0
+		attack_zone.offset_bottom = -12.0
+		attack_zone.text = ""
+		attack_zone.focus_mode = Control.FOCUS_NONE
+		attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		attack_zone.add_theme_stylebox_override("normal", invisible_touch_style)
+		attack_zone.add_theme_stylebox_override("hover", invisible_touch_style)
+		attack_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
+		attack_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	attack_zone.pressed.connect(_on_attack_pressed)
 	root.add_child(attack_zone)
 

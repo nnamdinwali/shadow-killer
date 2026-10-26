@@ -49,6 +49,7 @@ func _ready() -> void:
 	_build_skyline()
 	_build_traversal_route()
 	_build_street_furniture()
+	_build_city_props()
 	_build_fall_zone()
 	for cloud_name in CLOUD_NODES:
 		var cloud := get_node_or_null(cloud_name) as Node3D
@@ -283,6 +284,53 @@ func _build_swing_anchor(index: int, position: Vector3) -> void:
 func _build_street_furniture() -> void:
 	for x in [-30.0, 0.0, 30.0, 60.0, 90.0, 120.0]:
 		_build_lamp(x, -38.0)
+
+
+func _build_city_props() -> void:
+	# A closer street band gives the runner a readable, lived-in city scale.
+	# These props use only native Godot boxes and deterministic placement.
+	_box("MainRoad", Vector3(130.0, -0.52, -24.0), Vector3(620.0, 0.18, 18.0), asphalt)
+	_box("MainSidewalk", Vector3(130.0, -0.30, -13.8), Vector3(620.0, 0.30, 2.8), land_front)
+	_box("MainCurb", Vector3(130.0, -0.12, -15.2), Vector3(620.0, 0.22, 0.24), curb)
+	for x in range(-140, 421, 18):
+		_box("RoadMark_%d" % x, Vector3(float(x), -0.41, -24.0), Vector3(8.0, 0.025, 0.16), curb)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 48291
+	for i in 16:
+		var x := -110.0 + float(i) * 34.0 + rng.randf_range(-7.0, 7.0)
+		if i % 3 == 0:
+			_make_city_car(i, Vector3(x, -0.05, -28.5), rng.randf_range(0.85, 1.15))
+		elif i % 3 == 1:
+			_make_dumpster(i, Vector3(x, 0.55, -16.3))
+		else:
+			_make_street_sign(i, Vector3(x, 0.0, -16.0))
+
+	for i in 9:
+		var x := -96.0 + float(i) * 42.0 + rng.randf_range(-8.0, 8.0)
+		_make_tree_prop(i, Vector3(x, 0.0, -12.5), rng.randf_range(0.8, 1.25))
+
+
+func _make_city_car(index: int, position: Vector3, scale: float) -> void:
+	var car_color := palette[index % palette.size()][0]
+	_box("ParkedCarBody_%02d" % index, position + Vector3(0.0, 0.45 * scale, 0.0), Vector3(4.8, 0.7, 1.8) * scale, car_color)
+	_box("ParkedCarCabin_%02d" % index, position + Vector3(-0.15 * scale, 0.95 * scale, 0.0), Vector3(2.2, 0.65, 1.45) * scale, car_color.lightened(0.18))
+	_box("ParkedCarWindow_%02d" % index, position + Vector3(-0.15 * scale, 1.02 * scale, 0.0), Vector3(1.5, 0.28, 1.48) * scale, metal)
+
+
+func _make_dumpster(index: int, position: Vector3) -> void:
+	_box("Dumpster_%02d" % index, position, Vector3(2.0, 1.2, 1.4), metal)
+	_box("DumpsterLid_%02d" % index, position + Vector3(0.0, 0.68, 0.0), Vector3(2.1, 0.12, 1.48), rooftop_edge)
+
+
+func _make_street_sign(index: int, position: Vector3) -> void:
+	_box("SignPole_%02d" % index, position + Vector3(0.0, 1.4, 0.0), Vector3(0.10, 2.8, 0.10), pole)
+	_box("SignBoard_%02d" % index, position + Vector3(0.0, 2.8, 0.0), Vector3(1.25, 0.8, 0.12), metal)
+
+
+func _make_tree_prop(index: int, position: Vector3, scale: float) -> void:
+	_box("TreeTrunkClose_%02d" % index, position + Vector3(0.0, 1.1 * scale, 0.0), Vector3(0.30, 2.2, 0.30) * scale, pole)
+	_box("TreeCanopyClose_%02d" % index, position + Vector3(0.0, 2.55 * scale, 0.0), Vector3(2.1, 2.0, 1.8) * scale, land_back)
 
 
 func _build_lamp(x: float, z: float) -> void:
