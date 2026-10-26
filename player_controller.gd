@@ -4,7 +4,7 @@ extends CharacterBody3D
 ## the city move past him. Touch zones call jump() and attack().
 
 @export var run_speed := 5.5
-@export var jump_velocity := 8.0
+@export var jump_height := 6.0
 @export var double_tap_velocity := 10.5
 @export var attack_range := 2.5
 @export var gravity := 24.0
@@ -16,6 +16,7 @@ var attack_index := 0
 var attack_locked := false
 var double_jump_used := false
 var last_jump_time := -10.0
+var coyote_timer := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -37,10 +38,12 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
+		coyote_timer = maxf(coyote_timer - delta, 0.0)
 	else:
 		if velocity.y < 0.0:
 			velocity.y = 0.0
 		double_jump_used = false
+		coyote_timer = 0.12
 
 	# The player stays framed while the rooftop world scrolls underneath him.
 	# Gravity remains active, so missing a chunk makes him fall normally.
@@ -53,8 +56,10 @@ func _physics_process(delta: float) -> void:
 func jump() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	var is_double_tap := now - last_jump_time <= double_tap_window
-	if is_on_floor():
+	var jump_velocity := sqrt(2.0 * gravity * jump_height)
+	if is_on_floor() or coyote_timer > 0.0:
 		velocity.y = jump_velocity
+		coyote_timer = 0.0
 		double_jump_used = false
 		_play_first(["Jumping(1)"])
 	elif is_double_tap and not double_jump_used:

@@ -249,10 +249,10 @@ func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_co
 func _build_traversal_route() -> void:
 	# Foreground gameplay rooftops stay close to the camera; gaps are swing sections.
 	var segments := [
-		[24.0, 4.8, 72.0, 12.0],
-		[119.0, 4.8, 76.0, 12.0],
-		[218.0, 4.8, 76.0, 12.0],
-		[317.0, 4.8, 80.0, 12.0]
+		[24.0, 4.8, 88.0, 12.0],
+		[119.0, 4.8, 92.0, 12.0],
+		[218.0, 4.8, 92.0, 12.0],
+		[317.0, 4.8, 96.0, 12.0]
 	]
 	for i in segments.size():
 		var item = segments[i]
@@ -377,9 +377,14 @@ func _on_fall_zone_body_entered(body: Node3D) -> void:
 		body.set_meta("fell_from_city", true)
 
 
-func _solid_box(node_name: String, position: Vector3, size: Vector3, material: Material) -> StaticBody3D:
-	var body := StaticBody3D.new()
+func _solid_box(node_name: String, position: Vector3, size: Vector3, material: Material) -> AnimatableBody3D:
+	# The route scrolls during play. AnimatableBody3D is Godot's moving-platform
+	# body, so CharacterBody3D floor detection remains reliable while it moves.
+	var body := AnimatableBody3D.new()
 	body.name = node_name
+	body.sync_to_physics = true
+	body.collision_layer = 1
+	body.collision_mask = 1
 	body.position = position
 	var mesh_instance := _mesh_box("Mesh", Vector3.ZERO, size, material)
 	body.add_child(mesh_instance)
