@@ -17,12 +17,12 @@ const HAZE_COLOR := Color(0.78, 0.90, 1.0)
 ## "period" is the repeat distance in meters; layers are built three times side
 ## by side and wrapped, so the city is endless.
 const SKY_LAYERS := [
-	{"name": "FarSkyline", "z": -72.0, "scroll": 0.10, "period": 260.0, "count": 16,
-		"w_min": 9.0, "w_max": 16.0, "h_min": 28.0, "h_max": 58.0, "depth": 9.0, "haze": 0.15},
-	{"name": "MidSkyline", "z": -40.0, "scroll": 0.30, "period": 170.0, "count": 10,
-		"w_min": 10.0, "w_max": 17.0, "h_min": 18.0, "h_max": 36.0, "depth": 9.0, "haze": 0.05},
-	{"name": "NearSkyline", "z": -11.5, "scroll": 0.62, "period": 110.0, "count": 7,
-		"w_min": 8.0, "w_max": 13.0, "h_min": 10.0, "h_max": 18.0, "depth": 8.0, "haze": 0.0},
+	{"name": "FarSkyline", "z": -112.0, "scroll": 0.08, "period": 300.0, "count": 18,
+		"w_min": 8.0, "w_max": 15.0, "h_min": 22.0, "h_max": 46.0, "depth": 7.0, "haze": 0.32},
+	{"name": "MidSkyline", "z": -76.0, "scroll": 0.20, "period": 220.0, "count": 14,
+		"w_min": 8.0, "w_max": 14.0, "h_min": 15.0, "h_max": 30.0, "depth": 7.0, "haze": 0.18},
+	{"name": "NearSkyline", "z": -48.0, "scroll": 0.38, "period": 150.0, "count": 10,
+		"w_min": 7.0, "w_max": 12.0, "h_min": 9.0, "h_max": 19.0, "depth": 6.0, "haze": 0.08},
 ]
 
 const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
@@ -216,9 +216,9 @@ func _build_ground() -> void:
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
 	# Keep foreground ground and road out of the camera-to-rooftop sightline.
 	# They previously hid the building walls and made the roof slabs look airborne.
-	_box("LandBack", Vector3(center_x, -0.5, -88.0), Vector3(length, 1.0, 124.0), land_back)
-	_box("QuayBack", Vector3(center_x, -0.3, -26.0), Vector3(length, 0.6, 0.6), quay)
-	_box("River", Vector3(center_x, -0.65, -21.5), Vector3(length, 0.6, 9.0), water_material)
+	_box("LandBack", Vector3(center_x, -0.5, -112.0), Vector3(length, 1.0, 92.0), land_back)
+	_box("QuayBack", Vector3(center_x, -0.3, -37.0), Vector3(length, 0.6, 0.6), quay)
+	_box("River", Vector3(center_x, -0.65, -32.0), Vector3(length, 0.6, 9.0), water_material)
 
 
 func _build_skyline() -> void:
