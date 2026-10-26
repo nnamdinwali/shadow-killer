@@ -59,22 +59,6 @@ func _build_hud() -> void:
 	attack_button.add_theme_font_size_override("font_size", 24)
 	attack_button.pressed.connect(_attack)
 	root.add_child(attack_button)
-	var move_left := Button.new()
-	move_left.text = "◀"
-	move_left.custom_minimum_size = Vector2(72, 64)
-	move_left.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	move_left.position = Vector2(170, -102)
-	move_left.button_down.connect(func(): _set_move(-1.0))
-	move_left.button_up.connect(func(): _set_move(0.0))
-	root.add_child(move_left)
-	var move_right := Button.new()
-	move_right.text = "▶"
-	move_right.custom_minimum_size = Vector2(72, 64)
-	move_right.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	move_right.position = Vector2(248, -102)
-	move_right.button_down.connect(func(): _set_move(1.0))
-	move_right.button_up.connect(func(): _set_move(0.0))
-	root.add_child(move_right)
 
 func _on_node_added(node: Node) -> void:
 	if node.is_in_group("player"):
@@ -103,6 +87,3 @@ func set_lives(value: int) -> void:
 	if is_instance_valid(life_label):
 		life_label.text = "♥ ".repeat(lives).strip_edges()
 
-func _set_move(direction: float) -> void:
-	if is_instance_valid(player) and player.has_method("set_touch_direction"):
-		player.set_touch_direction(direction)
