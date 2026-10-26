@@ -17,11 +17,11 @@ const HAZE_COLOR := Color(0.78, 0.90, 1.0)
 ## "period" is the repeat distance in meters; layers are built three times side
 ## by side and wrapped, so the city is endless.
 const SKY_LAYERS := [
-	{"name": "FarSkyline", "z": -145.0, "scroll": 0.06, "period": 300.0, "count": 18,
+	{"name": "FarSkyline", "z": -420.0, "scroll": 0.04, "period": 300.0, "count": 18,
 		"w_min": 8.0, "w_max": 15.0, "h_min": 22.0, "h_max": 46.0, "depth": 7.0, "haze": 0.38},
-	{"name": "MidSkyline", "z": -112.0, "scroll": 0.16, "period": 220.0, "count": 14,
+	{"name": "MidSkyline", "z": -340.0, "scroll": 0.12, "period": 220.0, "count": 14,
 		"w_min": 8.0, "w_max": 14.0, "h_min": 15.0, "h_max": 30.0, "depth": 7.0, "haze": 0.23},
-	{"name": "NearSkyline", "z": -78.0, "scroll": 0.30, "period": 150.0, "count": 10,
+	{"name": "NearSkyline", "z": -250.0, "scroll": 0.22, "period": 150.0, "count": 10,
 		"w_min": 7.0, "w_max": 12.0, "h_min": 9.0, "h_max": 19.0, "depth": 6.0, "haze": 0.12},
 ]
 
@@ -151,9 +151,9 @@ void vertex() {
 
 void fragment() {
 	float broad = sin(water_world_pos.x * 0.035 + TIME * 0.25) * 0.5 + 0.5;
-	float ripples = sin(water_world_pos.x * 0.8 + water_world_pos.z * 1.4 + TIME * 1.7);
-	float glint = smoothstep(0.72, 0.98, ripples * 0.5 + 0.5);
-	ALBEDO = mix(deep_color.rgb, shallow_color.rgb, 0.25 + broad * 0.42) + vec3(glint * 0.24);
+	float ripples = sin(water_world_pos.x * 0.18 + water_world_pos.z * 0.32 + TIME * 1.1);
+	float glint = smoothstep(0.90, 0.995, ripples * 0.5 + 0.5);
+	ALBEDO = mix(deep_color.rgb, shallow_color.rgb, 0.25 + broad * 0.42) + vec3(glint * 0.16);
 	METALLIC = 0.28;
 	ROUGHNESS = 0.16;
 	SPECULAR = 0.85;
@@ -231,11 +231,11 @@ void fragment() {
 func _build_ground() -> void:
 	var length := LAND_X_MAX - LAND_X_MIN
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
-	# Depth order from the camera: playable rooftop (z=0), broad water (z=-18),
-	# near skyline (-78), mid skyline (-112), then hazy distant skyline (-145).
+	# Depth order from the camera: playable rooftop (z=0), broad water (-105),
+	# near skyline (-250), mid skyline (-340), then hazy distant skyline (-420).
 	# Keep the land strip behind the skyline so it cannot mask the roof supports.
-	_box("LandBack", Vector3(center_x, -0.5, -166.0), Vector3(length, 1.0, 36.0), land_back)
-	_box("QuayBack", Vector3(center_x, -0.15, -18.0), Vector3(length, 0.3, 0.7), quay)
+	_box("LandBack", Vector3(center_x, -0.5, -445.0), Vector3(length, 1.0, 44.0), land_back)
+	_box("QuayBack", Vector3(center_x, -0.15, -72.0), Vector3(length, 0.3, 0.7), quay)
 	_build_3d_water(center_x, length)
 
 
@@ -243,14 +243,14 @@ func _build_3d_water(center_x: float, length: float) -> void:
 	# A subdivided horizontal mesh lets the shader physically displace the
 	# surface into moving waves instead of showing a flat blue box top.
 	var water_mesh := PlaneMesh.new()
-	water_mesh.size = Vector2(length, 34.0)
-	water_mesh.subdivide_width = 320
-	water_mesh.subdivide_depth = 16
+	water_mesh.size = Vector2(length, 100.0)
+	water_mesh.subdivide_width = 2048
+	water_mesh.subdivide_depth = 64
 	var water := MeshInstance3D.new()
 	water.name = "Animated3DWater"
 	water.mesh = water_mesh
 	water.material_override = water_material
-	water.position = Vector3(center_x, -0.55, -19.0)
+	water.position = Vector3(center_x, -0.55, -105.0)
 	generated_root.add_child(water)
 
 
