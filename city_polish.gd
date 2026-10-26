@@ -290,7 +290,7 @@ func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
 	# Extend the colored building mass from ground level to the roof underside.
 	var ground_y := 0.0
 	var roof_bottom_y := center.y - size.y * 0.5
-	var building_height := max(roof_bottom_y - ground_y, 1.0)
+	var building_height: float = maxf(roof_bottom_y - ground_y, 1.0)
 	var building_size := Vector3(size.x * 0.88, building_height, size.z * 0.82)
 	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, ground_y, center.z), building_size, colors[0], colors[1])
 	generated_root.add_child(building)
