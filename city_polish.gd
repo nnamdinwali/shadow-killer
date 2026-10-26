@@ -313,8 +313,12 @@ func _build_city_props() -> void:
 
 func _make_city_car(index: int, position: Vector3, scale: float) -> void:
 	var car_color: Color = palette[index % palette.size()][0]
-	_box("ParkedCarBody_%02d" % index, position + Vector3(0.0, 0.45 * scale, 0.0), Vector3(4.8, 0.7, 1.8) * scale, car_color)
-	_box("ParkedCarCabin_%02d" % index, position + Vector3(-0.15 * scale, 0.95 * scale, 0.0), Vector3(2.2, 0.65, 1.45) * scale, car_color.lightened(0.18))
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = car_color
+	var cabin_material := StandardMaterial3D.new()
+	cabin_material.albedo_color = car_color.lightened(0.18)
+	_box("ParkedCarBody_%02d" % index, position + Vector3(0.0, 0.45 * scale, 0.0), Vector3(4.8, 0.7, 1.8) * scale, body_material)
+	_box("ParkedCarCabin_%02d" % index, position + Vector3(-0.15 * scale, 0.95 * scale, 0.0), Vector3(2.2, 0.65, 1.45) * scale, cabin_material)
 	_box("ParkedCarWindow_%02d" % index, position + Vector3(-0.15 * scale, 1.02 * scale, 0.0), Vector3(1.5, 0.28, 1.48) * scale, metal)
 
 

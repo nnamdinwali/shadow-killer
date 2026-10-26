@@ -165,35 +165,35 @@ func _build_hud() -> void:
 	# They have no old-style JUMP/ATTACK text; the small icons are visual hints.
 	var jump_zone := Button.new()
 	jump_zone.name = "JumpTouchZone"
-		jump_zone.anchor_right = 0.5
-		jump_zone.anchor_bottom = 1.0
-		jump_zone.offset_top = 180.0
-		jump_zone.offset_bottom = -12.0
-		jump_zone.text = ""
-		jump_zone.focus_mode = Control.FOCUS_NONE
-		jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		var invisible_touch_style := _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0)
-		jump_zone.add_theme_stylebox_override("normal", invisible_touch_style)
-		jump_zone.add_theme_stylebox_override("hover", invisible_touch_style)
-		jump_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
-		jump_zone.add_theme_stylebox_override("focus", invisible_touch_style)
+	jump_zone.anchor_right = 0.5
+	jump_zone.anchor_bottom = 1.0
+	jump_zone.offset_top = 180.0
+	jump_zone.offset_bottom = -12.0
+	jump_zone.text = ""
+	jump_zone.focus_mode = Control.FOCUS_NONE
+	jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var invisible_touch_style := _panel_style(Color.TRANSPARENT, 0, Color.TRANSPARENT, 0)
+	jump_zone.add_theme_stylebox_override("normal", invisible_touch_style)
+	jump_zone.add_theme_stylebox_override("hover", invisible_touch_style)
+	jump_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
+	jump_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	jump_zone.pressed.connect(_on_jump_pressed)
 	root.add_child(jump_zone)
 
 	var attack_zone := Button.new()
 	attack_zone.name = "AttackTouchZone"
-		attack_zone.anchor_left = 0.5
-		attack_zone.anchor_right = 1.0
-		attack_zone.anchor_bottom = 1.0
-		attack_zone.offset_top = 180.0
-		attack_zone.offset_bottom = -12.0
-		attack_zone.text = ""
-		attack_zone.focus_mode = Control.FOCUS_NONE
-		attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		attack_zone.add_theme_stylebox_override("normal", invisible_touch_style)
-		attack_zone.add_theme_stylebox_override("hover", invisible_touch_style)
-		attack_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
-		attack_zone.add_theme_stylebox_override("focus", invisible_touch_style)
+	attack_zone.anchor_left = 0.5
+	attack_zone.anchor_right = 1.0
+	attack_zone.anchor_bottom = 1.0
+	attack_zone.offset_top = 180.0
+	attack_zone.offset_bottom = -12.0
+	attack_zone.text = ""
+	attack_zone.focus_mode = Control.FOCUS_NONE
+	attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	attack_zone.add_theme_stylebox_override("normal", invisible_touch_style)
+	attack_zone.add_theme_stylebox_override("hover", invisible_touch_style)
+	attack_zone.add_theme_stylebox_override("pressed", invisible_touch_style)
+	attack_zone.add_theme_stylebox_override("focus", invisible_touch_style)
 	attack_zone.pressed.connect(_on_attack_pressed)
 	root.add_child(attack_zone)
 
