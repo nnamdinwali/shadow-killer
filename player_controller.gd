@@ -10,6 +10,7 @@ var animation_player: AnimationPlayer
 var attack_names := ["MutantPunch", "MmaKick", "PunchCombo", "FlyingKick", "HurricaneKick", "ElbowUppercutCombo", "Armada"]
 var attack_index := 0
 var attack_locked := false
+var touch_direction := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -34,14 +35,10 @@ func _physics_process(delta: float) -> void:
 	else:
 		if velocity.y < 0.0:
 			velocity.y = 0.0
-	var direction := Input.get_axis("move_left", "move_right")
+	var direction := touch_direction
 	velocity.x = direction * run_speed
 	if direction != 0.0:
 		rotation.y = 0.0 if direction > 0.0 else PI
-	if Input.is_action_just_pressed("jump"):
-		jump()
-	if Input.is_action_just_pressed("attack"):
-		attack()
 	move_and_slide()
 	if animation_player and not attack_locked and is_on_floor():
 		if absf(direction) > 0.1:
@@ -98,3 +95,6 @@ func _play_first(names: Array) -> void:
 
 func _on_animation_finished(_animation_name: StringName) -> void:
 	attack_locked = false
+
+func set_touch_direction(direction: float) -> void:
+	touch_direction = clampf(direction, -1.0, 1.0)

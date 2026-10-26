@@ -64,16 +64,16 @@ func _build_hud() -> void:
 	move_left.custom_minimum_size = Vector2(72, 64)
 	move_left.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	move_left.position = Vector2(170, -102)
-	move_left.button_down.connect(func(): Input.action_press("move_left"))
-	move_left.button_up.connect(func(): Input.action_release("move_left"))
+	move_left.button_down.connect(func(): _set_move(-1.0))
+	move_left.button_up.connect(func(): _set_move(0.0))
 	root.add_child(move_left)
 	var move_right := Button.new()
 	move_right.text = "▶"
 	move_right.custom_minimum_size = Vector2(72, 64)
 	move_right.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	move_right.position = Vector2(248, -102)
-	move_right.button_down.connect(func(): Input.action_press("move_right"))
-	move_right.button_up.connect(func(): Input.action_release("move_right"))
+	move_right.button_down.connect(func(): _set_move(1.0))
+	move_right.button_up.connect(func(): _set_move(0.0))
 	root.add_child(move_right)
 
 func _on_node_added(node: Node) -> void:
@@ -102,3 +102,7 @@ func set_lives(value: int) -> void:
 	lives = clampi(value, 0, 3)
 	if is_instance_valid(life_label):
 		life_label.text = "♥ ".repeat(lives).strip_edges()
+
+func _set_move(direction: float) -> void:
+	if is_instance_valid(player) and player.has_method("set_touch_direction"):
+		player.set_touch_direction(direction)
