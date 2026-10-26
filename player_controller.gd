@@ -1,16 +1,21 @@
 extends CharacterBody3D
-## Controller for the supplied animated GLB character. Add the imported model
-## as a child named CharacterModel; its AnimationPlayer is discovered recursively.
+## Physics controller for the supplied animated GLB character.
+## The player runs along the rooftop route while the camera follows, making
+## the city move past him. Touch zones call jump() and attack().
 
-@export var run_speed := 8.0
-@export var jump_velocity := 9.0
+@export var run_speed := 5.5
+@export var jump_velocity := 8.0
+@export var double_tap_velocity := 10.5
 @export var attack_range := 2.5
-var gravity := 24.0
+@export var gravity := 24.0
+@export var double_tap_window := 0.32
+
 var animation_player: AnimationPlayer
-var attack_names := ["MutantPunch", "MmaKick", "PunchCombo", "FlyingKick", "HurricaneKick", "ElbowUppercutCombo", "Armada"]
+var attack_names := ["MutantPunch", "MmaKick", "MmaKick(1)", "PunchCombo", "FlyingKick", "HurricaneKick", "ElbowUppercutCombo", "Armada", "Kicking"]
 var attack_index := 0
 var attack_locked := false
-var auto_run_animation := true
+var double_jump_used := false
+var last_jump_time := -10.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -27,7 +32,7 @@ func _ready() -> void:
 	animation_player = _find_animation_player(self)
 	if animation_player:
 		animation_player.animation_finished.connect(_on_animation_finished)
-		_play_first(["Running", "Run", "mixamo.com", "Idle"])
+		_play_run_animation()
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -35,40 +40,46 @@ func _physics_process(delta: float) -> void:
 	else:
 		if velocity.y < 0.0:
 			velocity.y = 0.0
-	# The runner stays in the gameplay lane while the level scrolls past.
-	velocity.x = 0.0
+		double_jump_used = false
+
+	# Forward motion is real CharacterBody3D motion; the follow camera keeps
+	# the player framed while the city and rooftops pass behind him.
+	velocity.x = run_speed
 	move_and_slide()
+
 	if animation_player and not attack_locked and is_on_floor():
-		_play_first(["Running", "Run", "mixamo.com", "Idle"])
+		_play_run_animation()
 
 func jump() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var is_double_tap := now - last_jump_time <= double_tap_window
 	if is_on_floor():
 		velocity.y = jump_velocity
-		_play_first(["Jumping(1)", "Jumping", "Jump"])
+		double_jump_used = false
+		_play_first(["Jumping(1)"])
+	elif is_double_tap and not double_jump_used:
+		# A bounded mid-air boost makes the second tap higher without sending
+		# the character off-screen.
+		velocity.y = double_tap_velocity
+		double_jump_used = true
+		_play_first(["Jumping(1)"])
+	last_jump_time = now
 
 func attack() -> void:
 	if attack_locked or animation_player == null:
 		return
-	var enemy := _find_nearby_villain()
-	var chosen := "Kicking"
-	if enemy != null:
-		for offset in attack_names.size():
-			var candidate: String = attack_names[(attack_index + offset) % attack_names.size()]
-			if animation_player.has_animation(candidate):
-				chosen = candidate
-				attack_index = (attack_index + offset + 1) % attack_names.size()
-				break
 	attack_locked = true
+	var chosen := "Kicking"
+	for offset in attack_names.size():
+		var candidate: String = attack_names[(attack_index + offset) % attack_names.size()]
+		if animation_player.has_animation(candidate):
+			chosen = candidate
+			attack_index = (attack_index + offset + 1) % attack_names.size()
+			break
 	if animation_player.has_animation(chosen):
 		animation_player.play(chosen)
 	else:
 		attack_locked = false
-
-func _find_nearby_villain() -> Node3D:
-	for enemy in get_tree().get_nodes_in_group("villain"):
-		if enemy is Node3D and global_position.distance_to(enemy.global_position) <= attack_range:
-			return enemy
-	return null
 
 func _find_animation_player(node: Node) -> AnimationPlayer:
 	for child in node.get_children():
@@ -78,6 +89,9 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 		if found:
 			return found
 	return null
+
+func _play_run_animation() -> void:
+	_play_first(["mixamo_com", "Running", "Run", "Idle"])
 
 func _play_first(names: Array) -> void:
 	if animation_player == null or attack_locked:
@@ -90,4 +104,3 @@ func _play_first(names: Array) -> void:
 
 func _on_animation_finished(_animation_name: StringName) -> void:
 	attack_locked = false
-

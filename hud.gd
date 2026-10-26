@@ -18,11 +18,14 @@ var coin_value: Label
 var distance_bar: ProgressBar
 var distance_value: Label
 var pause_button: Button
+var player: Node
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	health = max_health
 	coins = starting_coins
+	player = get_tree().get_first_node_in_group("player")
+	get_tree().node_added.connect(_on_node_added)
 	_build_hud()
 	_refresh_hud()
 
@@ -158,6 +161,33 @@ func _build_hud() -> void:
 	pause_button.pressed.connect(_toggle_pause)
 	root.add_child(pause_button)
 
+	# Invisible native touch zones: left half jumps, right half attacks.
+	# They have no old-style JUMP/ATTACK text; the small icons are visual hints.
+	var jump_zone := Button.new()
+	jump_zone.name = "JumpTouchZone"
+	jump_zone.anchor_right = 0.5
+	jump_zone.anchor_bottom = 1.0
+	jump_zone.offset_top = 180.0
+	jump_zone.offset_bottom = -12.0
+	jump_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	jump_zone.add_theme_stylebox_override("normal", _panel_style(Color(0.08, 0.55, 0.9, 0.035), 18, Color(0.55, 0.86, 1.0, 0.12), 1))
+	jump_zone.add_theme_stylebox_override("pressed", _panel_style(Color(0.25, 0.75, 1.0, 0.16), 18, Color(0.7, 0.95, 1.0, 0.36), 2))
+	jump_zone.pressed.connect(_on_jump_pressed)
+	root.add_child(jump_zone)
+
+	var attack_zone := Button.new()
+	attack_zone.name = "AttackTouchZone"
+	attack_zone.anchor_left = 0.5
+	attack_zone.anchor_right = 1.0
+	attack_zone.anchor_bottom = 1.0
+	attack_zone.offset_top = 180.0
+	attack_zone.offset_bottom = -12.0
+	attack_zone.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	attack_zone.add_theme_stylebox_override("normal", _panel_style(Color(0.92, 0.24, 0.18, 0.035), 18, Color(1.0, 0.65, 0.45, 0.12), 1))
+	attack_zone.add_theme_stylebox_override("pressed", _panel_style(Color(1.0, 0.32, 0.18, 0.16), 18, Color(1.0, 0.8, 0.6, 0.36), 2))
+	attack_zone.pressed.connect(_on_attack_pressed)
+	root.add_child(attack_zone)
+
 func _refresh_hud() -> void:
 	if health_bar:
 		health_bar.max_value = max_health
@@ -173,3 +203,15 @@ func _toggle_pause() -> void:
 	get_tree().paused = is_paused
 	pause_button.text = "▶" if is_paused else "Ⅱ"
 	pause_button.tooltip_text = "Resume game" if is_paused else "Pause game"
+
+func _on_node_added(node: Node) -> void:
+	if node.is_in_group("player"):
+		player = node
+
+func _on_jump_pressed() -> void:
+	if is_instance_valid(player) and player.has_method("jump"):
+		player.jump()
+
+func _on_attack_pressed() -> void:
+	if is_instance_valid(player) and player.has_method("attack"):
+		player.attack()
