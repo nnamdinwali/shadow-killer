@@ -50,14 +50,6 @@ func _ready() -> void:
 	_build_traversal_route()
 	_build_street_furniture()
 	_build_fall_zone()
-	if not Engine.is_editor_hint():
-		var hud_script = load("res://gameplay_hud.gd")
-		if hud_script != null and get_node_or_null("GameplayHUD") == null:
-			var hud := CanvasLayer.new()
-			hud.name = "GameplayHUD"
-			hud.set_script(hud_script)
-			hud.process_mode = Node.PROCESS_MODE_ALWAYS
-			add_child(hud)
 	for cloud_name in CLOUD_NODES:
 		var cloud := get_node_or_null(cloud_name) as Node3D
 		if cloud != null:
