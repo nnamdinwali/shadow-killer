@@ -126,20 +126,37 @@ func _setup_materials() -> void:
 	var water_shader := Shader.new()
 	water_shader.code = """
 shader_type spatial;
-render_mode cull_back;
+render_mode cull_back, diffuse_burley;
 
-uniform vec4 shallow_color : source_color = vec4(0.25, 0.88, 0.95, 1.0);
-uniform vec4 deep_color : source_color = vec4(0.04, 0.52, 0.88, 1.0);
+uniform vec4 shallow_color : source_color = vec4(0.24, 0.86, 0.96, 1.0);
+uniform vec4 deep_color : source_color = vec4(0.015, 0.24, 0.55, 1.0);
+
+varying vec3 water_world_pos;
+
+float wave_height(vec2 p) {
+	return sin(p.x * 0.075 + TIME * 1.15) * 0.24
+		+ sin(p.y * 0.19 - TIME * 0.82) * 0.10
+		+ sin((p.x + p.y) * 0.12 + TIME * 0.55) * 0.07;
+}
+
+void vertex() {
+	vec2 p = VERTEX.xz;
+	float h = wave_height(p);
+	float dx = (wave_height(p + vec2(0.08, 0.0)) - wave_height(p - vec2(0.08, 0.0))) / 0.16;
+	float dz = (wave_height(p + vec2(0.0, 0.08)) - wave_height(p - vec2(0.0, 0.08))) / 0.16;
+	VERTEX.y += h;
+	NORMAL = normalize(vec3(-dx, 1.0, -dz));
+	water_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
 
 void fragment() {
-	vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float a = sin(wp.x * 0.35 + TIME * 0.9) * 0.5 + 0.5;
-	float b = sin(wp.z * 0.9 - TIME * 0.6 + wp.x * 0.1) * 0.5 + 0.5;
-	float glint = smoothstep(0.80, 1.0, a * b);
-	vec3 col = mix(deep_color.rgb, shallow_color.rgb, 0.35 + 0.5 * a * b);
-	ALBEDO = col + vec3(glint) * 0.35;
-	ROUGHNESS = 0.18;
-	SPECULAR = 0.7;
+	float broad = sin(water_world_pos.x * 0.035 + TIME * 0.25) * 0.5 + 0.5;
+	float ripples = sin(water_world_pos.x * 0.8 + water_world_pos.z * 1.4 + TIME * 1.7);
+	float glint = smoothstep(0.72, 0.98, ripples * 0.5 + 0.5);
+	ALBEDO = mix(deep_color.rgb, shallow_color.rgb, 0.25 + broad * 0.42) + vec3(glint * 0.24);
+	METALLIC = 0.28;
+	ROUGHNESS = 0.16;
+	SPECULAR = 0.85;
 }
 """
 	water_material.shader = water_shader
@@ -219,7 +236,22 @@ func _build_ground() -> void:
 	# Keep the land strip behind the skyline so it cannot mask the roof supports.
 	_box("LandBack", Vector3(center_x, -0.5, -166.0), Vector3(length, 1.0, 36.0), land_back)
 	_box("QuayBack", Vector3(center_x, -0.15, -18.0), Vector3(length, 0.3, 0.7), quay)
-	_box("River", Vector3(center_x, -0.55, -19.0), Vector3(length, 0.35, 34.0), water_material)
+	_build_3d_water(center_x, length)
+
+
+func _build_3d_water(center_x: float, length: float) -> void:
+	# A subdivided horizontal mesh lets the shader physically displace the
+	# surface into moving waves instead of showing a flat blue box top.
+	var water_mesh := PlaneMesh.new()
+	water_mesh.size = Vector2(length, 34.0)
+	water_mesh.subdivide_width = 320
+	water_mesh.subdivide_depth = 16
+	var water := MeshInstance3D.new()
+	water.name = "Animated3DWater"
+	water.mesh = water_mesh
+	water.material_override = water_material
+	water.position = Vector3(center_x, -0.55, -19.0)
+	generated_root.add_child(water)
 
 
 func _build_skyline() -> void:
