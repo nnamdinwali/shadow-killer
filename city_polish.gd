@@ -10,6 +10,8 @@ extends Node3D
 const LAND_X_MIN := -400.0
 const LAND_X_MAX := 9000.0
 const HAZE_COLOR := Color(0.78, 0.90, 1.0)
+const RUNNER_SCROLL_SPEED := 5.5
+const ROUTE_LOOP_LENGTH := 420.0
 
 ## The distant neighborhood moves slowly for subtle depth.
 const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
@@ -61,6 +63,12 @@ func _process(_delta: float) -> void:
 	# Parallax only runs in the game, so the editor view stays put.
 	if Engine.is_editor_hint():
 		return
+	if generated_root != null:
+		# Move the world instead of the player. The animated runner stays framed,
+		# while moving StaticBody3D chunks still let the player fall through gaps.
+		generated_root.position.x -= RUNNER_SCROLL_SPEED * _delta
+		if generated_root.position.x <= -ROUTE_LOOP_LENGTH:
+			generated_root.position.x += ROUTE_LOOP_LENGTH
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return

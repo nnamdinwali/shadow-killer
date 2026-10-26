@@ -105,10 +105,7 @@ adjustment_saturation = 1.25
 script = ExtResource("1_city_polish")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1217030010]
-transform = Transform3D(1, 0, 0, 0, 0.9659258, 0.25881904, 0, -0.25881904, 0.9659258, 24, 10.5, 17)
-script = ExtResource("4_camera")
-target_path = NodePath("../Runner")
-offset = Vector3(0, 4.5, 14)
+transform = Transform3D(1, 0, 0, 0, 0.9659258, 0.25881904, 0, -0.25881904, 0.9659258, 0, 10.5, 17)
 current = true
 fov = 62.0
 near = 0.1

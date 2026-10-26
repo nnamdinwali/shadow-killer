@@ -42,9 +42,9 @@ func _physics_process(delta: float) -> void:
 			velocity.y = 0.0
 		double_jump_used = false
 
-	# Forward motion is real CharacterBody3D motion; the follow camera keeps
-	# the player framed while the city and rooftops pass behind him.
-	velocity.x = run_speed
+	# The player stays framed while the rooftop world scrolls underneath him.
+	# Gravity remains active, so missing a chunk makes him fall normally.
+	velocity.x = 0.0
 	move_and_slide()
 
 	if animation_player and not attack_locked and is_on_floor():
