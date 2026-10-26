@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://dq02waopmy5wd"]
 
+[ext_resource type="Script" path="res://hud.gd" id="1_hud"]
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
 size = Vector3(50, 0.2, 20)
 
@@ -346,3 +348,6 @@ directional_shadow_max_distance = 80.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_environment")
+
+[node name="GameHUD" type="CanvasLayer" parent="."]
+script = ExtResource("1_hud")
