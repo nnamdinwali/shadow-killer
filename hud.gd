@@ -15,6 +15,8 @@ var is_paused := false
 var health_value: Label
 var coin_value: Label
 var distance_value: Label
+var health_bar: ProgressBar
+var distance_bar: ProgressBar
 var pause_button: Button
 var player: Node
 
@@ -65,6 +67,12 @@ func _build_hud() -> void:
 	health_value.position = Vector2(0, 0)
 	health_value.size = Vector2(100, 36)
 	status.add_child(health_value)
+	health_bar = ProgressBar.new()
+	health_bar.theme_type_variation = "RedBar"
+	health_bar.show_percentage = false
+	health_bar.position = Vector2(0, 28)
+	health_bar.size = Vector2(84, 10)
+	status.add_child(health_bar)
 
 	coin_value = _label("● 16", 19, Color(1.0, 0.8, 0.25))
 	coin_value.position = Vector2(105, 0)
@@ -87,6 +95,17 @@ func _build_hud() -> void:
 	distance_value.size.y = 34
 	distance_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(distance_value)
+
+	distance_bar = ProgressBar.new()
+	distance_bar.theme_type_variation = "GoldBar"
+	distance_bar.show_percentage = false
+	distance_bar.anchor_left = 0.5
+	distance_bar.anchor_right = 0.5
+	distance_bar.offset_left = -110
+	distance_bar.offset_right = 110
+	distance_bar.position.y = 52
+	distance_bar.size.y = 10
+	root.add_child(distance_bar)
 
 	pause_button = Button.new()
 	pause_button.text = "Ⅱ"
@@ -153,7 +172,11 @@ func _handle_action_position(screen_position: Vector2) -> void:
 func _refresh_hud() -> void:
 	if health_value:
 		health_value.text = "HP %d" % roundi(health)
+		health_bar.max_value = max_health
+		health_bar.value = health
 		coin_value.text = "● %d" % coins
+		distance_bar.max_value = distance_goal
+		distance_bar.value = distance_m
 		distance_value.text = "%d m" % roundi(distance_m)
 
 func _toggle_pause() -> void:
