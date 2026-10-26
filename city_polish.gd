@@ -50,6 +50,14 @@ func _ready() -> void:
 	_build_traversal_route()
 	_build_street_furniture()
 	_build_fall_zone()
+	if not Engine.is_editor_hint():
+		var hud_script = load("res://gameplay_hud.gd")
+		if hud_script != null and get_node_or_null("GameplayHUD") == null:
+			var hud := CanvasLayer.new()
+			hud.name = "GameplayHUD"
+			hud.set_script(hud_script)
+			hud.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(hud)
 	for cloud_name in CLOUD_NODES:
 		var cloud := get_node_or_null(cloud_name) as Node3D
 		if cloud != null:
@@ -240,10 +248,10 @@ func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_co
 func _build_traversal_route() -> void:
 	# Foreground gameplay rooftops stay close to the camera; gaps are swing sections.
 	var segments := [
-		[22.0, 4.8, 44.0, 12.0],
-		[83.0, 4.8, 42.0, 12.0],
-		[145.0, 4.8, 44.0, 12.0],
-		[208.0, 4.8, 46.0, 12.0]
+		[24.0, 4.8, 72.0, 12.0],
+		[119.0, 4.8, 76.0, 12.0],
+		[218.0, 4.8, 76.0, 12.0],
+		[317.0, 4.8, 80.0, 12.0]
 	]
 	for i in segments.size():
 		var item = segments[i]
