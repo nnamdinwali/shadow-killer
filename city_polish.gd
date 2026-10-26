@@ -17,12 +17,12 @@ const HAZE_COLOR := Color(0.78, 0.90, 1.0)
 ## "period" is the repeat distance in meters; layers are built three times side
 ## by side and wrapped, so the city is endless.
 const SKY_LAYERS := [
-	{"name": "FarSkyline", "z": -112.0, "scroll": 0.08, "period": 300.0, "count": 18,
-		"w_min": 8.0, "w_max": 15.0, "h_min": 22.0, "h_max": 46.0, "depth": 7.0, "haze": 0.32},
-	{"name": "MidSkyline", "z": -76.0, "scroll": 0.20, "period": 220.0, "count": 14,
-		"w_min": 8.0, "w_max": 14.0, "h_min": 15.0, "h_max": 30.0, "depth": 7.0, "haze": 0.18},
-	{"name": "NearSkyline", "z": -48.0, "scroll": 0.38, "period": 150.0, "count": 10,
-		"w_min": 7.0, "w_max": 12.0, "h_min": 9.0, "h_max": 19.0, "depth": 6.0, "haze": 0.08},
+	{"name": "FarSkyline", "z": -145.0, "scroll": 0.06, "period": 300.0, "count": 18,
+		"w_min": 8.0, "w_max": 15.0, "h_min": 22.0, "h_max": 46.0, "depth": 7.0, "haze": 0.38},
+	{"name": "MidSkyline", "z": -112.0, "scroll": 0.16, "period": 220.0, "count": 14,
+		"w_min": 8.0, "w_max": 14.0, "h_min": 15.0, "h_max": 30.0, "depth": 7.0, "haze": 0.23},
+	{"name": "NearSkyline", "z": -78.0, "scroll": 0.30, "period": 150.0, "count": 10,
+		"w_min": 7.0, "w_max": 12.0, "h_min": 9.0, "h_max": 19.0, "depth": 6.0, "haze": 0.12},
 ]
 
 const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
@@ -214,11 +214,12 @@ void fragment() {
 func _build_ground() -> void:
 	var length := LAND_X_MAX - LAND_X_MIN
 	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
-	# Keep foreground ground and road out of the camera-to-rooftop sightline.
-	# They previously hid the building walls and made the roof slabs look airborne.
-	_box("LandBack", Vector3(center_x, -0.5, -112.0), Vector3(length, 1.0, 92.0), land_back)
-	_box("QuayBack", Vector3(center_x, -0.3, -37.0), Vector3(length, 0.6, 0.6), quay)
-	_box("River", Vector3(center_x, -0.65, -32.0), Vector3(length, 0.6, 9.0), water_material)
+	# Depth order from the camera: playable rooftop (z=0), broad water (z=-18),
+	# near skyline (-78), mid skyline (-112), then hazy distant skyline (-145).
+	# Keep the land strip behind the skyline so it cannot mask the roof supports.
+	_box("LandBack", Vector3(center_x, -0.5, -166.0), Vector3(length, 1.0, 36.0), land_back)
+	_box("QuayBack", Vector3(center_x, -0.15, -18.0), Vector3(length, 0.3, 0.7), quay)
+	_box("River", Vector3(center_x, -0.55, -19.0), Vector3(length, 0.35, 34.0), water_material)
 
 
 func _build_skyline() -> void:
