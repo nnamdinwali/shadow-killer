@@ -1,20 +1,50 @@
 @tool
 extends Node3D
-## Hand-authored city foundation and traversal layer.
-## Uses only native Godot meshes, materials, and shader code; no AI-generated assets.
+## Procedural city for the Shadow killer level.
+## Everything here is built from native Godot meshes, materials and shader code;
+## no imported art is used.
+##
+## Layout (z axis): the rooftop route runs along +x at z -6..6, a park and the
+## far skyline sit behind a river, and the city rolls past the camera in
+## parallax layers so the background never runs out.
+
+const LAND_X_MIN := -400.0
+const LAND_X_MAX := 9000.0
+const HAZE_COLOR := Color(0.78, 0.90, 1.0)
+
+## Parallax skyline layers. "scroll" is the share of the camera speed the layer
+## appears to move on screen (1.0 = same as the route, 0.0 = painted on the sky).
+## "period" is the repeat distance in meters; layers are built three times side
+## by side and wrapped, so the city is endless.
+const SKY_LAYERS := [
+	{"name": "FarSkyline", "z": -72.0, "scroll": 0.10, "period": 260.0, "count": 16,
+		"w_min": 9.0, "w_max": 16.0, "h_min": 28.0, "h_max": 58.0, "depth": 9.0, "haze": 0.15},
+	{"name": "MidSkyline", "z": -40.0, "scroll": 0.30, "period": 170.0, "count": 10,
+		"w_min": 10.0, "w_max": 17.0, "h_min": 18.0, "h_max": 36.0, "depth": 9.0, "haze": 0.05},
+	{"name": "NearSkyline", "z": -11.5, "scroll": 0.62, "period": 110.0, "count": 7,
+		"w_min": 8.0, "w_max": 13.0, "h_min": 10.0, "h_max": 18.0, "depth": 8.0, "haze": 0.0},
+]
+
+const CLOUD_NODES := ["CloudLayerFar", "CloudLayerMid", "CloudLayerHigh"]
 
 var asphalt := StandardMaterial3D.new()
-var sidewalk := StandardMaterial3D.new()
+var land_front := StandardMaterial3D.new()
+var land_back := StandardMaterial3D.new()
+var quay := StandardMaterial3D.new()
 var curb := StandardMaterial3D.new()
-var lane_paint := StandardMaterial3D.new()
 var metal := StandardMaterial3D.new()
+var pole := StandardMaterial3D.new()
 var lamp_glow := StandardMaterial3D.new()
 var rooftop := StandardMaterial3D.new()
 var rooftop_edge := StandardMaterial3D.new()
-var void_material := StandardMaterial3D.new()
-var facade_shader := Shader.new()
-var facade_materials: Array[ShaderMaterial] = []
+var water_material := ShaderMaterial.new()
+var building_shader := Shader.new()
+var building_material := ShaderMaterial.new()
+var palette: Array = []
 var generated_root: Node3D
+var parallax_layers: Array = []
+var cloud_nodes: Array = []
+
 
 func _ready() -> void:
 	generated_root = get_node_or_null("CityPolishGenerated")
@@ -26,154 +56,229 @@ func _ready() -> void:
 	else:
 		for child in generated_root.get_children():
 			child.free()
+	parallax_layers.clear()
+	cloud_nodes.clear()
 	_setup_materials()
-	_apply_facade_textures()
-	# The street-level slabs were masking the playable rooftop route.
-	# Keep the skyline as background, but build only the elevated traversal path.
+	_build_ground()
+	_build_skyline()
 	_build_traversal_route()
 	_build_street_furniture()
 	_build_fall_zone()
+	for cloud_name in CLOUD_NODES:
+		var cloud := get_node_or_null(cloud_name) as Node3D
+		if cloud != null:
+			cloud_nodes.append({"node": cloud, "offset": cloud.position.x})
+
+
+func _process(_delta: float) -> void:
+	# Parallax only runs in the game, so the editor view stays put.
+	if Engine.is_editor_hint():
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cx := cam.global_position.x
+	for layer in parallax_layers:
+		var node: Node3D = layer["node"]
+		var period: float = layer["period"]
+		var offset := -cx * float(layer["scroll"])
+		offset = fposmod(offset + period * 0.5, period) - period * 0.5
+		node.position.x = cx + offset
+	for cloud in cloud_nodes:
+		var cloud_node: Node3D = cloud["node"]
+		cloud_node.position.x = cx + float(cloud["offset"])
+
 
 func _setup_materials() -> void:
-	asphalt.albedo_color = Color("252a30")
-	asphalt.roughness = 0.96
+	asphalt.albedo_color = Color("3b4252")
+	asphalt.roughness = 0.95
 
-	sidewalk.albedo_color = Color("a7a39a")
-	sidewalk.roughness = 0.9
+	land_front.albedo_color = Color("d9b97a")
+	land_front.roughness = 0.92
 
-	curb.albedo_color = Color("c8c4b9")
+	land_back.albedo_color = Color("5fbf45")
+	land_back.roughness = 0.95
+
+	quay.albedo_color = Color("c9a063")
+	quay.roughness = 0.85
+
+	curb.albedo_color = Color("fff3d6")
 	curb.roughness = 0.78
 
-	lane_paint.albedo_color = Color("f4c44f")
-	lane_paint.emission_enabled = true
-	lane_paint.emission = Color("8c641b")
-	lane_paint.emission_energy_multiplier = 0.28
-	lane_paint.roughness = 0.58
+	metal.albedo_color = Color("2fa3b5")
+	metal.metallic = 0.15
+	metal.roughness = 0.5
 
-	metal.albedo_color = Color("303b43")
-	metal.metallic = 0.72
-	metal.roughness = 0.34
+	pole.albedo_color = Color("4d6a85")
+	pole.metallic = 0.5
+	pole.roughness = 0.4
 
-	lamp_glow.albedo_color = Color("ffcc78")
+	lamp_glow.albedo_color = Color("ffe08a")
 	lamp_glow.emission_enabled = true
-	lamp_glow.emission = Color("ff9d32")
-	lamp_glow.emission_energy_multiplier = 2.4
+	lamp_glow.emission = Color("ffc34d")
+	lamp_glow.emission_energy_multiplier = 1.6
 
-	rooftop.albedo_color = Color("393b3d")
-	rooftop.roughness = 0.88
-	rooftop_edge.albedo_color = Color("b9a47d")
-	rooftop_edge.roughness = 0.72
+	rooftop.albedo_color = Color("d8c29a")
+	rooftop.roughness = 0.9
+	rooftop_edge.albedo_color = Color("ff6b57")
+	rooftop_edge.roughness = 0.7
 
-	void_material.albedo_color = Color("0b1420")
-	void_material.roughness = 1.0
+	var water_shader := Shader.new()
+	water_shader.code = """
+shader_type spatial;
+render_mode cull_back;
 
-	facade_shader.code = """
+uniform vec4 shallow_color : source_color = vec4(0.25, 0.88, 0.95, 1.0);
+uniform vec4 deep_color : source_color = vec4(0.04, 0.52, 0.88, 1.0);
+
+void fragment() {
+	vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float a = sin(wp.x * 0.35 + TIME * 0.9) * 0.5 + 0.5;
+	float b = sin(wp.z * 0.9 - TIME * 0.6 + wp.x * 0.1) * 0.5 + 0.5;
+	float glint = smoothstep(0.80, 1.0, a * b);
+	vec3 col = mix(deep_color.rgb, shallow_color.rgb, 0.35 + 0.5 * a * b);
+	ALBEDO = col + vec3(glint) * 0.35;
+	ROUGHNESS = 0.18;
+	SPECULAR = 0.7;
+}
+"""
+	water_material.shader = water_shader
+
+	# One shader draws every building. Colors and size come per building
+	# through instance uniforms, and windows are laid out in meters so a
+	# small tower and a long rooftop building both get properly sized windows.
+	building_shader.code = """
 shader_type spatial;
 render_mode diffuse_burley, cull_back;
 
-uniform vec4 base_color : source_color = vec4(0.42, 0.58, 0.68, 1.0);
-uniform vec4 window_color : source_color = vec4(0.06, 0.16, 0.23, 1.0);
-uniform float detail_scale = 1.0;
+instance uniform vec4 base_color : source_color = vec4(0.97, 0.62, 0.52, 1.0);
+instance uniform vec4 window_color : source_color = vec4(0.30, 0.56, 0.80, 1.0);
+instance uniform vec3 box_size = vec3(10.0, 20.0, 6.0);
+uniform vec2 cell_size = vec2(2.4, 2.2);
+
+varying vec3 v_pos;
+varying vec3 v_nrm;
 
 float hash12(vec2 p) {
-    p = fract(p * vec2(127.1, 311.7));
-    return fract(sin(dot(p, vec2(269.5, 183.3))) * 43758.5453);
+	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void vertex() {
+	v_pos = VERTEX;
+	v_nrm = NORMAL;
 }
 
 void fragment() {
-    vec2 cell = UV * vec2(10.0, 18.0) * detail_scale;
-    vec2 local = fract(cell);
-    vec2 tile = floor(cell);
-    float panel = step(0.045, local.x) * step(local.x, 0.955) * step(0.035, local.y) * step(local.y, 0.965);
-    float window_frame = step(0.13, local.x) * step(local.x, 0.87) * step(0.12, local.y) * step(local.y, 0.88);
-    float window = step(0.19, local.x) * step(local.x, 0.81) * step(0.18, local.y) * step(local.y, 0.82);
-    float warm_variation = step(0.84, hash12(tile + 4.0));
-    float panel_variation = (hash12(tile + 18.0) - 0.5) * 0.075;
-    float seam = (1.0 - step(0.975, local.x)) * 0.10 + (1.0 - step(0.975, local.y)) * 0.08;
-    float grime = hash12(tile * 0.7 + 12.0) * 0.075;
-    float vertical_weathering = smoothstep(0.72, 1.0, hash12(vec2(tile.x, 3.0))) * (1.0 - local.y) * 0.07;
-    vec3 facade = base_color.rgb * (1.0 - grime - seam - vertical_weathering + panel_variation);
-    vec3 glass = window_color.rgb + vec3(0.07, 0.095, 0.10) * warm_variation;
-    float glass_mask = window * window_frame * panel;
-    ALBEDO = mix(facade, glass, glass_mask * 0.88);
-    ROUGHNESS = mix(0.91, 0.30, glass_mask);
-    SPECULAR = mix(0.28, 0.62, glass_mask);
-    EMISSION = glass * glass_mask * (0.008 + warm_variation * 0.028);
+	vec3 n = abs(v_nrm);
+	bool along_x = n.x > n.z;
+	float width = along_x ? box_size.z : box_size.x;
+	float u = along_x ? v_pos.z : v_pos.x;
+	float v = v_pos.y + box_size.y * 0.5;
+	float is_wall = step(n.y, 0.5);
+
+	float cols = max(1.0, floor(width / cell_size.x));
+	float rows = max(1.0, floor(box_size.y / cell_size.y));
+	vec2 g = vec2((u + width * 0.5) / width * cols, v / box_size.y * rows);
+	vec2 cell = floor(g);
+	vec2 f = fract(g);
+
+	float pane = step(0.16, f.x) * step(f.x, 0.84) * step(0.18, f.y) * step(f.y, 0.82);
+	// Tall buildings keep a plain ground-floor band.
+	float skip_row = rows >= 4.0 ? 1.0 - step(1.0, cell.y) : 0.0;
+	float glass = pane * is_wall * (1.0 - skip_row);
+	float shade = 0.82 + 0.3 * hash12(cell + floor(box_size.xy));
+	float ledge = step(f.y, 0.07) * is_wall;
+
+	vec3 wall = base_color.rgb * (1.0 - 0.10 * ledge);
+	vec3 pane_col = window_color.rgb * shade;
+	ALBEDO = mix(wall, pane_col, glass * 0.92);
+	ROUGHNESS = mix(0.85, 0.22, glass);
+	SPECULAR = mix(0.3, 0.7, glass);
 }
 """
+	building_material.shader = building_shader
 
-func _apply_facade_textures() -> void:
-	var palette := [
-		[Color("9c7767"), Color("172f3b")],
-		[Color("b9ad98"), Color("1c3b49")],
-		[Color("819792"), Color("20343e")],
-		[Color("a88b70"), Color("1b303d")],
-		[Color("c0bbb0"), Color("293e48")]
+	palette = [
+		[Color("ff6f59"), Color("2f6fb8")],  # coral red
+		[Color("ffc93c"), Color("2f6fb8")],  # sunshine yellow
+		[Color("2fd08a"), Color("2a63ad")],  # green
+		[Color("3d8bff"), Color("1f4f9e")],  # royal blue
+		[Color("a66bff"), Color("2f63b5")],  # purple
+		[Color("ff9a3c"), Color("2f6fb8")],  # orange
+		[Color("19c3cf"), Color("2a5fa8")],  # teal
+		[Color("ffe9a8"), Color("3a78c4")],  # cream
+		[Color("ff5f9e"), Color("2f6fb8")],  # pink
 	]
-	var index := 0
-	for node in get_tree().get_nodes_in_group("facade_buildings"):
-		var material := ShaderMaterial.new()
-		material.shader = facade_shader
-		var colors = palette[index % palette.size()]
-		material.set_shader_parameter("base_color", colors[0])
-		material.set_shader_parameter("window_color", colors[1])
-		material.set_shader_parameter("detail_scale", 0.9 + float(index % 3) * 0.12)
-		node.material_override = material
-		facade_materials.append(material)
-		index += 1
 
-	# The existing scene predates groups, so also catch its named skyline meshes.
-	for node in _all_scene_meshes():
-		if not _is_facade_name(node.name):
-			continue
-		var material := ShaderMaterial.new()
-		material.shader = facade_shader
-		var colors = palette[index % palette.size()]
-		material.set_shader_parameter("base_color", colors[0])
-		material.set_shader_parameter("window_color", colors[1])
-		material.set_shader_parameter("detail_scale", 0.9 + float(index % 3) * 0.12)
-		node.material_override = material
-		facade_materials.append(material)
-		index += 1
 
-func _all_scene_meshes() -> Array[MeshInstance3D]:
-	var result: Array[MeshInstance3D] = []
-	for node in get_tree().get_nodes_in_group("facade_buildings"):
-		if node is MeshInstance3D:
-			result.append(node)
-	for node in find_children("*", "MeshInstance3D", true, false):
-		if node is MeshInstance3D and not result.has(node):
-			result.append(node)
-	return result
+func _build_ground() -> void:
+	var length := LAND_X_MAX - LAND_X_MIN
+	var center_x := (LAND_X_MAX + LAND_X_MIN) * 0.5
+	# Front land: in front of the river, under the rooftop route.
+	_box("LandFront", Vector3(center_x, -0.5, 17.0), Vector3(length, 1.0, 68.0), land_front)
+	# Back land: park behind the river that the skyline stands on.
+	_box("LandBack", Vector3(center_x, -0.5, -88.0), Vector3(length, 1.0, 124.0), land_back)
+	# Stone quay walls along both river banks.
+	_box("QuayFront", Vector3(center_x, -0.3, -17.0), Vector3(length, 0.6, 0.6), quay)
+	_box("QuayBack", Vector3(center_x, -0.3, -26.0), Vector3(length, 0.6, 0.6), quay)
+	# The river sits lower than the land so the banks read as real banks.
+	_box("River", Vector3(center_x, -0.65, -21.5), Vector3(length, 0.6, 9.0), water_material)
+	# Plain road strip in front of the route.
+	_box("Road", Vector3(center_x, 0.04, 14.0), Vector3(length, 0.08, 7.0), asphalt)
+	_box("RoadLine", Vector3(center_x, 0.09, 14.0), Vector3(length, 0.02, 0.18), lamp_glow)
 
-func _is_facade_name(node_name: String) -> bool:
-	return node_name.contains("Tower") or node_name.contains("Block") or node_name.contains("Building")
 
-func _build_floor() -> void:
-	_box("CityFoundation", Vector3(0.0, -0.25, -8.0), Vector3(56.0, 0.45, 34.0), asphalt)
-	_box("RearPlaza", Vector3(0.0, 0.02, -10.0), Vector3(50.0, 0.12, 8.0), sidewalk)
-	_box("FrontWalk", Vector3(0.0, 0.02, 7.0), Vector3(50.0, 0.12, 6.0), sidewalk)
-	# A dark lower void makes the gaps read as dangerous space rather than a
-	# second flat floor. It is intentionally below the playable route.
-	_box("DeepCityVoid", Vector3(0.0, -8.0, -2.0), Vector3(62.0, 0.30, 24.0), void_material)
+func _build_skyline() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7341
+	for config in SKY_LAYERS:
+		var layer := Node3D.new()
+		layer.name = config["name"]
+		generated_root.add_child(layer)
+		layer.position = Vector3(0.0, 0.0, config["z"])
+		parallax_layers.append({"node": layer, "scroll": config["scroll"], "period": config["period"]})
 
-func _build_road() -> void:
-	_box("Boulevard", Vector3(0.0, 0.12, 1.8), Vector3(48.0, 0.18, 8.6), asphalt)
-	_box("BoulevardCurbBack", Vector3(0.0, 0.29, -2.55), Vector3(48.0, 0.20, 0.34), curb)
-	_box("BoulevardCurbFront", Vector3(0.0, 0.29, 6.15), Vector3(48.0, 0.20, 0.34), curb)
-	for x in range(-21, 22, 6):
-		_box("LaneDash_%s" % x, Vector3(x, 0.235, 1.8), Vector3(3.0, 0.035, 0.16), lane_paint)
-	_box("EdgeLineBack", Vector3(0.0, 0.235, -1.95), Vector3(47.0, 0.035, 0.12), lane_paint)
-	_box("EdgeLineFront", Vector3(0.0, 0.235, 5.55), Vector3(47.0, 0.035, 0.12), lane_paint)
-	for x in [-11.0, 11.0]:
-		for z in [-0.8, 0.1, 1.0, 1.9, 2.8, 3.7, 4.6]:
-			_box("Crosswalk_%s_%s" % [x, z], Vector3(x, 0.245, z), Vector3(0.55, 0.035, 0.52), curb)
+		var period: float = config["period"]
+		var count: int = config["count"]
+		var slot := period / float(count)
+		var haze: float = config["haze"]
+		for i in count:
+			var width := rng.randf_range(config["w_min"], min(config["w_max"], slot * 0.95))
+			var height := rng.randf_range(config["h_min"], config["h_max"])
+			var x_local := -period * 0.5 + (float(i) + 0.5) * slot + rng.randf_range(-slot * 0.1, slot * 0.1)
+			var z_off := rng.randf_range(-3.0, 3.0)
+			var colors: Array = palette[rng.randi() % palette.size()]
+			var base_color: Color = colors[0]
+			var window_color: Color = colors[1]
+			base_color = base_color.lerp(HAZE_COLOR, haze)
+			window_color = window_color.lerp(HAZE_COLOR, haze * 0.8)
+			var size := Vector3(width, height, config["depth"])
+			for copy in [-1, 0, 1]:
+				var pos := Vector3(x_local + float(copy) * period, 0.0, z_off)
+				var node_name := "%s_%02d_%d" % [config["name"], i, copy + 1]
+				var building := _make_building(node_name, pos, size, base_color, window_color)
+				building.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				layer.add_child(building)
+
+
+func _make_building(node_name: String, base_pos: Vector3, size: Vector3, base_color: Color, window_color: Color) -> MeshInstance3D:
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var box := BoxMesh.new()
+	box.size = size
+	mesh_instance.mesh = box
+	mesh_instance.material_override = building_material
+	mesh_instance.position = Vector3(base_pos.x, base_pos.y + size.y * 0.5, base_pos.z)
+	mesh_instance.set_instance_shader_parameter("base_color", base_color)
+	mesh_instance.set_instance_shader_parameter("window_color", window_color)
+	mesh_instance.set_instance_shader_parameter("box_size", size)
+	return mesh_instance
+
 
 func _build_traversal_route() -> void:
 	# 2.5D side-scrolling route in the foreground play lane.
 	# Rooftops are intentionally 1000-2500 world units long so running is the
 	# default; gaps are reserved for occasional jumps and web-swing sections.
-	# Long running rooftops are the default; only selected sections create jumps.
 	# Each entry is [center_x, top_y, length_x, depth_z].
 	var segments := [
 		[1250.0, 4.8, 2500.0, 12.0],
@@ -188,36 +293,19 @@ func _build_traversal_route() -> void:
 
 
 func _build_rooftop_segment(index: int, center: Vector3, size: Vector3) -> void:
-	# Give every floating route piece a believable building mass underneath it.
-	# The rooftop remains a traversal surface; these blocks are the structure
-	# that makes it read as a city rather than an unsupported platform.
+	# Every route piece gets a colorful building mass underneath it, down to the ground.
 	var building_height := center.y - 0.28
-	var building_size := Vector3(size.x * 0.88, max(building_height, 1.4), size.z * 0.82)
-	var building_center := Vector3(center.x, building_height * 0.5 - 0.2, center.z)
-	var building_material := _facade_material(index)
-	_box_with_material("RooftopBuilding_%02d" % index, building_center, building_size, building_material)
-	_box_with_material("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
+	var building_size := Vector3(size.x * 0.88, max(building_height + 0.2, 1.4), size.z * 0.82)
+	var colors: Array = palette[index % palette.size()]
+	var building := _make_building("RooftopBuilding_%02d" % index, Vector3(center.x, -0.2, center.z), building_size, colors[0], colors[1])
+	generated_root.add_child(building)
+	_box("RooftopBuildingCap_%02d" % index, Vector3(center.x, center.y - 0.40, center.z), Vector3(size.x * 0.96, 0.16, size.z * 0.92), rooftop_edge)
 	_solid_box("TraversalRoof_%02d" % index, center, size, rooftop)
 	_box("TraversalRoofEdge_%02d" % index, center + Vector3(0.0, size.y * 0.52, size.z * 0.48), Vector3(size.x, 0.12, 0.14), rooftop_edge)
 	_box("TraversalRoofTrim_%02d" % index, center + Vector3(-size.x * 0.48, size.y * 0.52, 0.0), Vector3(0.14, 0.12, size.z), rooftop_edge)
-	# Small rooftop service blocks make the platforms feel occupied and give
-	# the player readable cover/obstacles.
+	# Small rooftop service blocks make the platforms feel occupied.
 	_box("RooftopUnit_%02d" % index, center + Vector3(size.x * 0.18, size.y * 0.85, -0.25), Vector3(1.0, 0.55, 0.8), metal)
 
-func _facade_material(index: int) -> ShaderMaterial:
-	var colors: Array = [
-		[Color("9c7767"), Color("172f3b")],
-		[Color("b9ad98"), Color("1c3b49")],
-		[Color("819792"), Color("20343e")],
-		[Color("a88b70"), Color("1b303d")],
-		[Color("c0bbb0"), Color("293e48")]
-	][index % 5]
-	var material := ShaderMaterial.new()
-	material.shader = facade_shader
-	material.set_shader_parameter("base_color", colors[0])
-	material.set_shader_parameter("window_color", colors[1])
-	material.set_shader_parameter("detail_scale", 0.95 + float(index % 3) * 0.15)
-	return material
 
 func _build_swing_anchor(index: int, position: Vector3) -> void:
 	var anchor := Marker3D.new()
@@ -225,37 +313,27 @@ func _build_swing_anchor(index: int, position: Vector3) -> void:
 	anchor.position = position
 	anchor.add_to_group("swing_anchors")
 	generated_root.add_child(anchor)
-	# Visible only as a small emissive locator during level design; hide before
-	# shipping if the player should not see the traversal markers.
+	# Small glowing locator for level design; hide before shipping if the
+	# player should not see the traversal markers.
 	var beacon := _mesh_box("SwingBeacon", Vector3.ZERO, Vector3(0.22, 0.22, 0.22), lamp_glow)
 	beacon.name = "SwingBeacon_%02d" % index
 	anchor.add_child(beacon)
 
+
 func _build_street_furniture() -> void:
 	for x in [-20.0, -10.0, 10.0, 20.0]:
-		_build_lamp(x, -3.25)
-		_build_lamp(x, 6.85, true)
-	for x in [-17.0, -5.0, 7.0, 19.0]:
-		_build_barrier(x, -2.88)
+		_build_lamp(x, 17.5)
 
-func _build_lamp(x: float, z: float, reversed_arm: bool = false) -> void:
+
+func _build_lamp(x: float, z: float) -> void:
 	var root := Node3D.new()
 	root.name = "StreetLamp_%s_%s" % [x, z]
 	generated_root.add_child(root)
 	root.position = Vector3(x, 0.0, z)
-	root.add_child(_mesh_box("Pole", Vector3(0.0, 2.1, 0.0), Vector3(0.14, 4.2, 0.14), metal))
-	var arm_x := -0.58 if reversed_arm else 0.58
-	root.add_child(_mesh_box("Arm", Vector3(arm_x, 4.05, 0.0), Vector3(1.25, 0.12, 0.12), metal))
-	root.add_child(_mesh_box("Lamp", Vector3(arm_x * 2.0, 3.88, 0.0), Vector3(0.34, 0.12, 0.30), lamp_glow))
+	root.add_child(_mesh_box("Pole", Vector3(0.0, 2.1, 0.0), Vector3(0.14, 4.2, 0.14), pole))
+	root.add_child(_mesh_box("Arm", Vector3(-0.58, 4.05, 0.0), Vector3(1.25, 0.12, 0.12), pole))
+	root.add_child(_mesh_box("Lamp", Vector3(-1.16, 3.88, 0.0), Vector3(0.34, 0.12, 0.30), lamp_glow))
 
-func _build_barrier(x: float, z: float) -> void:
-	var root := Node3D.new()
-	root.name = "RoadBarrier_%s" % x
-	generated_root.add_child(root)
-	root.position = Vector3(x, 0.0, z)
-	root.add_child(_mesh_box("PostA", Vector3(-1.0, 0.55, 0.0), Vector3(0.12, 1.1, 0.12), metal))
-	root.add_child(_mesh_box("PostB", Vector3(1.0, 0.55, 0.0), Vector3(0.12, 1.1, 0.12), metal))
-	root.add_child(_mesh_box("Rail", Vector3(0.0, 0.62, 0.0), Vector3(2.2, 0.16, 0.16), curb))
 
 func _build_fall_zone() -> void:
 	var fall_zone := Area3D.new()
@@ -264,16 +342,17 @@ func _build_fall_zone() -> void:
 	fall_zone.collision_mask = 1
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(62.0, 1.0, 24.0)
+	box.size = Vector3(LAND_X_MAX - LAND_X_MIN, 1.0, 24.0)
 	shape.shape = box
-	shape.position = Vector3(0.0, -8.0, -2.0)
+	shape.position = Vector3((LAND_X_MAX + LAND_X_MIN) * 0.5, -8.0, -2.0)
 	fall_zone.add_child(shape)
 	fall_zone.body_entered.connect(_on_fall_zone_body_entered)
 	generated_root.add_child(fall_zone)
 
+
 func _on_fall_zone_body_entered(body: Node3D) -> void:
 	# The player controller can later connect to this signal to trigger a fall
-	# animation/restart. Keeping it here makes the level's failure space explicit.
+	# animation/restart.
 	if body.is_in_group("player"):
 		body.set_meta("fell_from_city", true)
 
@@ -293,15 +372,12 @@ func _solid_box(node_name: String, position: Vector3, size: Vector3, material: M
 	generated_root.add_child(body)
 	return body
 
+
 func _box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := _mesh_box(node_name, position, size, material)
 	generated_root.add_child(mesh_instance)
 	return mesh_instance
 
-func _box_with_material(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var mesh_instance := _mesh_box(node_name, position, size, material)
-	generated_root.add_child(mesh_instance)
-	return mesh_instance
 
 func _mesh_box(node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
