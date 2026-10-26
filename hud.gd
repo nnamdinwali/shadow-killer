@@ -65,28 +65,31 @@ func _build_hud() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(root)
 
-	# Top-left hero status, matching the reference layout.
-	var status_panel := Panel.new()
-	status_panel.position = Vector2(24, 22)
-	status_panel.size = Vector2(420, 166)
+		# Top-left hero status, matching the reference layout.
+		var status_panel := Panel.new()
+		status_panel.position = Vector2(24, 22)
+		status_panel.size = Vector2(320, 92)
 	status_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.06, 0.11, 0.93), 18, Color(0.35, 0.78, 1.0, 0.7), 2))
 	root.add_child(status_panel)
 
-	var hero_label := _label("HERO STATUS", 17, Color(0.68, 0.9, 1.0))
-	hero_label.position = Vector2(22, 12)
+		var hero_label := _label("HERO STATUS", 17, Color(0.68, 0.9, 1.0))
+		hero_label.visible = false
+		hero_label.position = Vector2(22, 12)
 	status_panel.add_child(hero_label)
 
-	var health_caption := _label("HEALTH", 14, Color(0.65, 0.74, 0.82))
-	health_caption.position = Vector2(22, 43)
+		var health_caption := _label("HEALTH", 14, Color(0.65, 0.74, 0.82))
+		health_caption.visible = false
+		health_caption.position = Vector2(22, 43)
 	status_panel.add_child(health_caption)
 
-	var hearts := _label("♥ ♥ ♥", 28, Color(1.0, 0.22, 0.25))
-	hearts.position = Vector2(18, 66)
+		var hearts := _label("♥ ♥ ♥", 28, Color(1.0, 0.22, 0.25))
+		hearts.visible = false
+		hearts.position = Vector2(18, 66)
 	status_panel.add_child(hearts)
 
 	health_bar = ProgressBar.new()
-	health_bar.position = Vector2(132, 70)
-	health_bar.size = Vector2(264, 32)
+		health_bar.position = Vector2(18, 18)
+		health_bar.size = Vector2(190, 24)
 	health_bar.show_percentage = false
 	health_bar.add_theme_stylebox_override("background", _panel_style(Color(0.12, 0.16, 0.21, 1.0), 10, Color(0.38, 0.48, 0.58, 0.7), 1))
 	health_bar.add_theme_stylebox_override("fill", _panel_style(Color(0.9, 0.16, 0.2, 1.0), 10))
@@ -94,14 +97,14 @@ func _build_hud() -> void:
 
 	health_value = _label("100 / 100", 17, Color.WHITE)
 	health_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	health_value.position = Vector2(132, 73)
-	health_value.size = Vector2(264, 26)
+		health_value.position = Vector2(18, 18)
+		health_value.size = Vector2(190, 24)
 	status_panel.add_child(health_value)
 
 	# Large readable coin counter with a native Godot-drawn coin badge.
 	var coin_badge := Panel.new()
-	coin_badge.position = Vector2(18, 120)
-	coin_badge.size = Vector2(218, 36)
+		coin_badge.position = Vector2(224, 18)
+		coin_badge.size = Vector2(72, 36)
 	coin_badge.add_theme_stylebox_override("panel", _panel_style(Color(0.08, 0.12, 0.18, 0.95), 10, Color(1.0, 0.74, 0.18, 0.75), 2))
 	status_panel.add_child(coin_badge)
 
@@ -114,37 +117,39 @@ func _build_hud() -> void:
 	coin_badge.add_child(coin_icon)
 
 	var coin_caption := _label("COINS", 13, Color(1.0, 0.86, 0.42))
-	coin_caption.position = Vector2(52, 3)
+		coin_caption.visible = false
+		coin_caption.position = Vector2(52, 3)
 	coin_badge.add_child(coin_caption)
 	coin_value = _label("16", 23, Color.WHITE)
-	coin_value.position = Vector2(52, 13)
+		coin_value.position = Vector2(36, 5)
 	coin_badge.add_child(coin_value)
 
 	# Top-center distance meter.
 	var distance_panel := Panel.new()
 	distance_panel.anchor_left = 0.5
 	distance_panel.anchor_right = 0.5
-	distance_panel.offset_left = -235
-	distance_panel.offset_right = 235
-	distance_panel.position.y = 22
-	distance_panel.size.y = 88
+		distance_panel.offset_left = -170
+		distance_panel.offset_right = 170
+		distance_panel.position.y = 22
+		distance_panel.size.y = 60
 	distance_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.025, 0.06, 0.11, 0.93), 18, Color(1.0, 0.74, 0.2, 0.65), 2))
 	root.add_child(distance_panel)
 
-	var distance_title := _label("CITY RUN   •   DISTANCE", 16, Color(1.0, 0.87, 0.5))
-	distance_title.position = Vector2(20, 10)
+		var distance_title := _label("CITY RUN   •   DISTANCE", 16, Color(1.0, 0.87, 0.5))
+		distance_title.visible = false
+		distance_title.position = Vector2(20, 10)
 	distance_panel.add_child(distance_title)
 
 	distance_bar = ProgressBar.new()
-	distance_bar.position = Vector2(20, 46)
-	distance_bar.size = Vector2(352, 20)
+		distance_bar.position = Vector2(18, 22)
+		distance_bar.size = Vector2(245, 18)
 	distance_bar.show_percentage = false
 	distance_bar.add_theme_stylebox_override("background", _panel_style(Color(0.1, 0.14, 0.19, 1.0), 8))
 	distance_bar.add_theme_stylebox_override("fill", _panel_style(Color(0.98, 0.58, 0.08, 1.0), 8))
 	distance_panel.add_child(distance_bar)
 
 	distance_value = _label("0 m", 16, Color.WHITE)
-	distance_value.position = Vector2(385, 42)
+		distance_value.position = Vector2(270, 18)
 	distance_panel.add_child(distance_value)
 
 	pause_button = Button.new()

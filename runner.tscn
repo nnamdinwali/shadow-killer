@@ -4,15 +4,16 @@
 [ext_resource type="Script" path="res://player_controller.gd" id="2_controller"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape_runner"]
-radius = 0.42
-height = 1.9
+radius = 1.15
+height = 8.0
 
 [node name="Runner" type="CharacterBody3D"]
 script = ExtResource("2_controller")
 
 [node name="CharacterModel" parent="." instance=ExtResource("1_model")]
-scale = Vector3(0.011, 0.011, 0.011)
+rotation_degrees = Vector3(0, -90, 0)
+scale = Vector3(0.07, 0.07, 0.07)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-position = Vector3(0, 0.95, 0)
+position = Vector3(0, 4, 0)
 shape = SubResource("CapsuleShape_runner")
