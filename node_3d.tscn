@@ -1,6 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://dq02waopmy5wd"]
 
 [ext_resource type="Script" path="res://city_polish.gd" id="1_city_polish"]
+[ext_resource type="Script" path="res://hud.gd" id="2_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_environment"]
 sky_top_color = Color(0.10, 0.45, 0.95, 1)
@@ -106,3 +107,5 @@ directional_shadow_max_distance = 80.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_environment")
+[node name="GameHUD" type="CanvasLayer" parent="."]
+script = ExtResource("2_hud")
