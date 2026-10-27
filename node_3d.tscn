@@ -1,25 +1,75 @@
-[gd_scene load_steps=2 format=3 uid="uid://dq02waopmy5wd"]
+[gd_scene format=3 uid="uid://dq02waopmy5wd"]
 
-[ext_resource type="Script" path="res://city_polish.gd" id="1_city_polish"]
-[ext_resource type="Script" path="res://hud.gd" id="2_hud"]
-[ext_resource type="PackedScene" path="res://runner.tscn" id="3_runner"]
-[ext_resource type="Script" path="res://camera_3d.gd" id="4_camera"]
+[ext_resource type="Script" uid="uid://cj6yoeqsa01w" path="res://city_polish.gd" id="1_city_polish"]
+[ext_resource type="Script" uid="uid://chyh2fa3nh7ou" path="res://hud.gd" id="2_hud"]
+
+[sub_resource type="Shader" id="Shader_clouds"]
+code = "shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
+
+uniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float opacity : hint_range(0.0, 1.0) = 0.7;
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash21(i);
+    float b = hash21(i + vec2(1.0, 0.0));
+    float c = hash21(i + vec2(0.0, 1.0));
+    float d = hash21(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+float cloud_fbm(vec2 p) {
+    float value = 0.0;
+    float amplitude = 0.55;
+    for (int i = 0; i < 4; i++) {
+        value += noise(p) * amplitude;
+        p = p * 2.02 + vec2(13.7, 7.1);
+        amplitude *= 0.5;
+    }
+    return value;
+}
+
+void fragment() {
+    vec2 p = UV * vec2(5.2, 2.35);
+    p.x += TIME * 0.004;
+    float base = cloud_fbm(p);
+    float detail = noise(p * 3.4 + 8.0) * 0.22;
+    float cloud = smoothstep(0.51, 0.69, base + detail);
+    float soft_edges = smoothstep(0.02, 0.16, UV.x) * smoothstep(0.98, 0.84, UV.x);
+    soft_edges *= smoothstep(0.02, 0.20, UV.y) * smoothstep(0.98, 0.80, UV.y);
+    ALBEDO = cloud_color.rgb;
+    ALPHA = cloud * soft_edges * opacity;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
+render_priority = 0
+shader = SubResource("Shader_clouds")
+shader_parameter/cloud_color = Color(1, 1, 1, 1)
+shader_parameter/opacity = 0.7
+
+[sub_resource type="QuadMesh" id="QuadMesh_clouds"]
+material = SubResource("ShaderMaterial_clouds")
+size = Vector2(68, 28)
+orientation = 1
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_environment"]
-sky_top_color = Color(0.10, 0.45, 0.95, 1)
+sky_top_color = Color(0.1, 0.45, 0.95, 1)
 sky_horizon_color = Color(0.72, 0.91, 1, 1)
 ground_bottom_color = Color(0.62, 0.82, 0.96, 1)
 ground_horizon_color = Color(0.78, 0.91, 1, 1)
+ground_energy_multiplier = 0.5
 sun_angle_max = 18.0
 sun_curve = 0.08
-sun_disk_scale = 1.0
-sun_disk_curve = 0.05
-sun_energy_multiplier = 1.2
-sun_latitude = 28.0
-sun_longitude = -35.0
-sky_energy_multiplier = 1.0
-ground_energy_multiplier = 0.5
-use_debanding = true
 
 [sub_resource type="Sky" id="Sky_environment"]
 sky_material = SubResource("ProceduralSkyMaterial_environment")
@@ -27,94 +77,67 @@ sky_material = SubResource("ProceduralSkyMaterial_environment")
 [sub_resource type="Environment" id="Environment_environment"]
 background_mode = 2
 sky = SubResource("Sky_environment")
-background_energy_multiplier = 1.0
 ambient_light_source = 3
 ambient_light_sky_contribution = 0.8
 ambient_light_energy = 0.55
 reflected_light_source = 2
-fog_enabled = true
-fog_light_color = Color(0.78, 0.91, 1, 1)
-fog_light_energy = 0.48
-fog_density = 0.0008
-fog_height = 8.0
-fog_height_density = 0.0
-fog_sky_affect = 0.18
-ssao_enabled = false
+tonemap_mode = 2
+tonemap_exposure = 0.7
 ssao_radius = 2.0
 ssao_intensity = 0.7
 ssao_power = 1.35
 glow_enabled = true
 glow_intensity = 0.12
 glow_strength = 0.45
-glow_bloom = 0.0
-tonemap_mode = 2
-tonemap_exposure = 0.7
+fog_enabled = true
+fog_light_color = Color(0.78, 0.91, 1, 1)
+fog_light_energy = 0.48
+fog_density = 0.0008
+fog_sky_affect = 0.18
+fog_height = 8.0
 adjustment_enabled = true
 adjustment_contrast = 1.05
 adjustment_saturation = 1.25
-tonemap_white = 1.0
 
-[sub_resource type="Shader" id="Shader_clouds"]
-code = "shader_type spatial;\nrender_mode unshaded, cull_disabled, depth_draw_never, blend_mix;\n\nuniform vec4 cloud_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);\nuniform float opacity : hint_range(0.0, 1.0) = 0.7;\n\nfloat hash21(vec2 p) {\n    p = fract(p * vec2(123.34, 456.21));\n    p += dot(p, p + 45.32);\n    return fract(p.x * p.y);\n}\n\nfloat noise(vec2 p) {\n    vec2 i = floor(p);\n    vec2 f = fract(p);\n    f = f * f * (3.0 - 2.0 * f);\n    float a = hash21(i);\n    float b = hash21(i + vec2(1.0, 0.0));\n    float c = hash21(i + vec2(0.0, 1.0));\n    float d = hash21(i + vec2(1.0, 1.0));\n    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);\n}\n\nfloat cloud_fbm(vec2 p) {\n    float value = 0.0;\n    float amplitude = 0.55;\n    for (int i = 0; i < 4; i++) {\n        value += noise(p) * amplitude;\n        p = p * 2.02 + vec2(13.7, 7.1);\n        amplitude *= 0.5;\n    }\n    return value;\n}\n\nvoid fragment() {\n    vec2 p = UV * vec2(5.2, 2.35);\n    p.x += TIME * 0.004;\n    float base = cloud_fbm(p);\n    float detail = noise(p * 3.4 + 8.0) * 0.22;\n    float cloud = smoothstep(0.51, 0.69, base + detail);\n    float soft_edges = smoothstep(0.02, 0.16, UV.x) * smoothstep(0.98, 0.84, UV.x);\n    soft_edges *= smoothstep(0.02, 0.20, UV.y) * smoothstep(0.98, 0.80, UV.y);\n    ALBEDO = cloud_color.rgb;\n    ALPHA = cloud * soft_edges * opacity;\n}\n"
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
-shader = SubResource("Shader_clouds")
-
-[sub_resource type="QuadMesh" id="QuadMesh_clouds"]
-material = SubResource("ShaderMaterial_clouds")
-size = Vector2(68, 28)
-orientation = 1
-
-[node name="EnvironmentShowcase" type="Node3D"]
+[node name="EnvironmentShowcase" type="Node3D" unique_id=286521272]
 script = ExtResource("1_city_polish")
 
-[node name="Runner" parent="." instance=ExtResource("3_runner")]
-position = Vector3(28, 5.2, 0)
-
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1217030010]
 transform = Transform3D(1, 0, 0, 0, 0.9659258, 0.25881904, 0, -0.25881904, 0.9659258, 24, 8.5, 17)
 current = true
 fov = 62.0
 near = 0.1
 far = 300.0
-script = ExtResource("4_camera")
-target_path = NodePath("../Runner")
-offset = Vector3(0, 2.5, 14)
-smooth_speed = 5.0
 
-[node name="CloudLayerFar" type="MeshInstance3D" parent="."]
-position = Vector3(0, 40, -60)
-scale = Vector3(2.4, 1, 1.6)
+[node name="CloudLayerFar" type="MeshInstance3D" parent="." unique_id=1174040010]
+transform = Transform3D(2.4, 0, 0, 0, 1, 0, 0, 0, 1.6, 0, 40, -60)
 mesh = SubResource("QuadMesh_clouds")
 
-[node name="CloudLayerMid" type="MeshInstance3D" parent="."]
-position = Vector3(-60, 34, -30)
-rotation_degrees = Vector3(0, 12, 0)
-scale = Vector3(1.8, 0.7, 1)
+[node name="CloudLayerMid" type="MeshInstance3D" parent="." unique_id=1424362130]
+transform = Transform3D(1.7606657, 0, 0.2079117, 0, 0.7, 0, -0.37424105, 0, 0.9781476, -60, 34, -30)
 mesh = SubResource("QuadMesh_clouds")
 
-[node name="CloudLayerHigh" type="MeshInstance3D" parent="."]
-position = Vector3(70, 52, -90)
-rotation_degrees = Vector3(0, -18, 0)
-scale = Vector3(2.2, 0.65, 1.4)
+[node name="CloudLayerHigh" type="MeshInstance3D" parent="." unique_id=1372075912]
+transform = Transform3D(2.0923245, 0, -0.4326238, 0, 0.65, 0, 0.6798374, 0, 1.3314792, 70, 52, -90)
 mesh = SubResource("QuadMesh_clouds")
 
-[node name="FillLight" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-25, 150, 0)
+[node name="FillLight" type="DirectionalLight3D" parent="." unique_id=1032556760]
+transform = Transform3D(-0.8660254, -0.21130916, 0.45315394, 0, 0.90630776, 0.42261827, -0.50000006, 0.36599815, -0.7848855, 0, 0, 0)
 light_color = Color(0.75, 0.88, 1, 1)
 light_energy = 0.2
-shadow_enabled = false
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-40, -30, 0)
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=685706322]
+transform = Transform3D(0.8660254, 0.3213938, -0.38302222, 0, 0.76604444, 0.6427876, 0.5, -0.55667037, 0.66341394, 0, 0, 0)
 light_color = Color(1, 0.94, 0.82, 1)
-light_energy = 1.0
-light_indirect_energy = 1.0
 light_angular_distance = 0.28
 shadow_enabled = true
 directional_shadow_max_distance = 80.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=723865674]
 environment = SubResource("Environment_environment")
-[node name="GameHUD" type="CanvasLayer" parent="."]
+
+[node name="GameHUD" type="CanvasLayer" parent="." unique_id=18906633]
 script = ExtResource("2_hud")
+starting_coins = 0
+
+[node name="CityPolishGenerated" type="Node3D" parent="." unique_id=2092020901]
